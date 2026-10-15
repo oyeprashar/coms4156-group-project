@@ -1,0 +1,75 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
+    id 'checkstyle'
+}
+
+group = 'edu.columbia.coms4156'
+version = '0.0.1-SNAPSHOT'
+description = 'A minimal ticketing application'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    mockitoAgent {
+        transitive = false
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
+    // Spring Boot manages JUnit 6 and Mockito, including their Jupiter integration.
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    mockitoAgent 'org.mockito:mockito-core'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    // Use the current JDK, but reject language features and APIs newer than Java 17.
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // Load Mockito at startup rather than relying on dynamic agent attachment.
+    jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}"
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+jacoco {
+    toolVersion = '0.8.15'
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+    }
+}
+
+checkstyle {
+    // Checkstyle 13+ requires Java 21; 12.x also runs on Java 17.
+    toolVersion = '12.3.1'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    maxWarnings = 0
+}
+
+tasks.withType(Checkstyle).configureEach {
+    reports {
+        html.required = true
+        xml.required = true
+    }
+}
