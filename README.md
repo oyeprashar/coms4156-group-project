@@ -1,6 +1,253 @@
 # coms4156-group-project
 
-## Team 
+A minimal Spring Boot scaffold for a ticketing application inspired by BookMyShow
+and District. A sample controller, service, and `Ticket` POJO demonstrate the
+team's coding style. Business logic and database integration are future work.
+
+The Gradle project and Spring application use the identifier `ticketing`.
+
+## Basic setup
+
+1. Install **Git** and **JDK 17 or JDK 26**. No separate Gradle installation or
+   database is required. The first build needs internet access to download Gradle
+   and dependencies.
+2. Clone the repository and enter its root directory. Skip this step if you already
+   have a local checkout.
+
+   ```sh
+   git clone https://github.com/oyeprashar/coms4156-group-project.git
+   cd coms4156-group-project
+   ```
+
+3. Verify Java and the Gradle wrapper, then build the project. The build runs tests,
+   generates coverage reports, checks Google Java Style, and creates executable JARs.
+
+   ```sh
+   java -version
+   ./gradlew --version
+   ./gradlew clean build
+   ```
+
+4. Start the application:
+
+   ```sh
+   ./gradlew bootRun
+   ```
+
+   Look for `Started TicketingApplication` in the console. The server listens at
+   `http://localhost:8080`. No database is needed. There is no route at `/`, so
+   that URL returns **404**. Stop the application with Ctrl+C.
+
+5. Open `http://localhost:8080/v1/tickets/sample` in your browser, or run:
+
+   ```sh
+   curl http://localhost:8080/v1/tickets/sample
+   ```
+
+   The sample returns fixed data:
+
+   ```json
+   {
+     "ticketId": "tkt-abc123",
+     "eventId": "evt-abc123",
+     "reservationId": "res-123abc"
+   }
+   ```
+
+On Windows PowerShell, use `.\gradlew.bat` instead of `./gradlew` for each command.
+If macOS/Linux reports `Permission denied`, run `chmod +x gradlew` and retry.
+If port 8080 is occupied, use `./gradlew bootRun --args='--server.port=8081'`.
+
+If Java is missing or Gradle reports the wrong JDK, set `JAVA_HOME` to your JDK's
+installation directory (the directory containing `bin`), and put its `bin`
+directory first on `PATH`. Replace the example paths below with your installed JDK.
+
+macOS/Linux:
+
+```sh
+export JAVA_HOME="/path/to/jdk-17-or-26"
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+Windows PowerShell:
+
+```powershell
+$env:JAVA_HOME = 'C:\path\to\jdk-17-or-26'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+```
+
+These commands apply to the current terminal session. Rerun `java -version` and
+the wrapper's `--version` command after changing them.
+
+### IDE setup
+
+Open the repository root as a Gradle project. Select the included Gradle wrapper,
+use JDK 17 or 26 as the Gradle JVM, and keep the Java language level at 17.
+Delegate builds and tests to Gradle so Checkstyle, Mockito, and JaCoCo use the
+project configuration. Enable EditorConfig support and select Google Java Style
+in your Java formatter. The checked-in `.editorconfig` sets two-space Java
+indentation and a 100-column line limit; Gradle Checkstyle is the style check used
+by the build.
+
+## Stack
+
+| Tool | Version / purpose |
+| --- | --- |
+| Java | Java 17 baseline; build and run with JDK 17 or JDK 26 |
+| Spring Boot | 4.1.1, Spring MVC with embedded Tomcat |
+| Gradle | 9.8.1 via the included wrapper |
+| JUnit | 6.0.3, managed by Spring Boot |
+| Mockito | 5.23.0, managed by Spring Boot, with the Jupiter extension |
+| JaCoCo | 0.8.15, HTML and XML coverage reports |
+| Checkstyle | 12.3.1, Google Java Style in `config/checkstyle/checkstyle.xml` |
+
+Spring Boot manages test dependencies through `spring-boot-starter-webmvc-test`.
+JUnit 6 still uses imports such as `org.junit.jupiter.api.Test`.
+
+## Project structure
+
+```text
+.
+├── build.gradle
+├── settings.gradle
+├── gradlew / gradlew.bat
+├── gradle/wrapper/                       # Pinned Gradle distribution and checksum
+├── config/checkstyle/checkstyle.xml
+└── src/
+    ├── main/
+    │   ├── java/edu/columbia/coms4156/ticketing/
+    │   │   ├── TicketingApplication.java # Spring Boot entry point
+    │   │   ├── controller/
+    │   │   │   └── TicketController.java # Sample HTTP route
+    │   │   ├── service/
+    │   │   │   └── TicketService.java    # Sample service method
+    │   │   ├── pojo/
+    │   │   │   └── Ticket.java           # Simple immutable data record
+    │   │   └── repository/              # Reserved for future persistence
+    │   └── resources/
+    │       └── application.properties
+    └── test/
+        └── java/edu/columbia/coms4156/ticketing/
+            ├── TicketingApplicationTests.java
+            └── MockitoConfigurationTests.java
+```
+
+Packages contain `package-info.java` files documenting their purpose. Put new classes beneath the
+`edu.columbia.coms4156.ticketing` package so Spring Boot can discover them.
+Place future tests under the corresponding package in `src/test/java`.
+
+### Sample coding style
+
+Use `TicketController`, `TicketService`, and `Ticket` as small reference examples:
+
+- Controllers define routes and delegate to services using constructor injection
+  and `private final` dependency fields.
+- Services contain application logic. The sample only returns a fixed ticket.
+- POJOs hold data. `Ticket` uses a Java 17 record with three fields and no behavior.
+- Keep descriptive names, public API Javadoc, and Google Java formatting. Run
+  `./gradlew build` to check the same style rules for every new Java file.
+
+## Java compatibility and packaging
+
+The build uses the JDK selected by `JAVA_HOME` (or the Java on your `PATH` if unset).
+Compilation uses `--release 17` to enforce Java 17 language features, standard
+library APIs, and bytecode even when compiling on JDK 26. No Java 17 toolchain
+download is required for developers using JDK 26. Tests run on the selected JDK.
+
+To check both versions locally, run the build once with each JDK:
+
+```sh
+JAVA_HOME=/path/to/jdk-17 ./gradlew --no-daemon clean build
+JAVA_HOME=/path/to/jdk-26 ./gradlew --no-daemon clean build
+```
+
+Build an executable JAR with `./gradlew bootJar`, then run it with:
+
+```sh
+java -jar build/libs/ticketing-0.0.1-SNAPSHOT.jar
+```
+
+## Tests, coverage, and style
+
+| Command | Purpose |
+| --- | --- |
+| `./gradlew test` | Run JUnit 6 tests and generate JaCoCo reports |
+| `./gradlew jacocoTestReport` | Run tests if needed and generate coverage reports |
+| `./gradlew checkstyleMain checkstyleTest` | Check production and test Java style |
+| `./gradlew check` | Run tests, coverage reporting, and Checkstyle |
+| `./gradlew build` | Run checks and create JARs |
+
+Generated reports:
+
+- Tests: `build/reports/tests/test/index.html`
+- Coverage: `build/reports/jacoco/test/html/index.html`
+- Coverage XML: `build/reports/jacoco/test/jacocoTestReport.xml`
+- Style: `build/reports/checkstyle/main.html` and `test.html`
+
+The [GitHub Actions workflow](.github/workflows/ci.yml) runs on pushes and pull
+requests, and can also be started manually from the Actions tab. It checks Java
+17 and 26 using `./gradlew --no-daemon --console=plain --continue check`. This runs
+JUnit tests, Checkstyle for production and test sources, and JaCoCo reporting.
+`--continue` lets independent checks finish even if another fails; test failures
+or style violations still fail the job. GitHub will run it once the workflow and
+project files are committed and pushed.
+
+The scaffold tests verify that the application starts without a database and that
+JUnit's Mockito extension can mock final classes. Mockito is loaded as a Java
+agent at test startup so it does not need to attach itself dynamically on newer
+JDKs. Future unit tests can use `@ExtendWith(MockitoExtension.class)` and `@Mock`;
+they do not need `@SpringBootTest` unless they test Spring integration.
+
+### Google Java Style
+
+Follow the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html).
+The configuration is vendored from
+[Checkstyle 12.3.1's Google ruleset](https://github.com/checkstyle/checkstyle/blob/checkstyle-12.3.1/src/main/resources/google_checks.xml)
+to match the version in `build.gradle`. Keep these versions aligned when upgrading.
+The rules include:
+
+- Two-space block indentation and at least four extra spaces for continuation lines.
+- A 100-column line limit, with the Google ruleset's exceptions for imports,
+  package declarations, and other supported cases.
+- Explicit imports, with static imports first and alphabetically sorted groups.
+- Brace placement, naming, whitespace, and Javadoc checks.
+
+Run `./gradlew checkstyleMain checkstyleTest` before submitting changes, or run
+`./gradlew build` to include all checks. The upstream rules report warnings;
+`maxWarnings = 0` in `build.gradle` makes those violations fail the build.
+Open `build/reports/checkstyle/main.html` or `test.html` to see the affected files
+and lines. Checkstyle reports violations; use your editor to fix or format the code.
+The guide remains the reference for conventions Checkstyle cannot verify.
+
+Coverage is reported without a minimum percentage while there is no business logic
+to measure.
+
+## Database recommendation
+
+**PostgreSQL is the recommended starting point.** Events, venues, showtimes, seats,
+users, and bookings have natural relationships. PostgreSQL's foreign keys help
+keep those relationships valid, and transactions let related booking changes
+succeed or fail together. For reserved seating, a unique constraint on the active
+allocation of a `(showtime_id, seat_id)` pair, combined with transactional booking
+logic, can prevent two customers from booking the same seat. A read of seat
+availability alone is not enough to prevent concurrent bookings. See PostgreSQL's
+[constraints documentation](https://www.postgresql.org/docs/current/ddl-constraints.html)
+and [transaction tutorial](https://www.postgresql.org/docs/current/tutorial-transactions.html).
+
+Start with a single PostgreSQL database when persistence is implemented. At that
+point, add Spring Data JPA, the PostgreSQL JDBC driver, and schema migrations.
+This scaffold has no database dependency, connection credentials, or schema,
+so setup does not depend on choosing or running a database.
+
+## Compatibility references
+
+- [Spring Boot system requirements](https://docs.spring.io/spring-boot/4.1/system-requirements.html)
+- [Spring Boot managed dependencies](https://docs.spring.io/spring-boot/4.1/appendix/dependency-versions/coordinates.html)
+- [Gradle Java compatibility](https://docs.gradle.org/current/userguide/compatibility.html)
+- [Checkstyle JRE requirements](https://checkstyle.org/#JRE_and_JDK)
+
+## Team: DROP TABLE TEAMS;
+
 - Aditya Unnikrishnan - au2325
 - Shubham Prashar - sp4540
 - Tyra Minnal Vinay - tl3441
