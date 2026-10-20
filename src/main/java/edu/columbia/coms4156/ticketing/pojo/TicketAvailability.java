@@ -1,7 +1,4 @@
-
 package edu.columbia.coms4156.ticketing.pojo;
 
-public record TicketAvailability(
-  boolean available,
-  int availableCount) {
-}
+/** Represents available ticket inventory. */
+public record TicketAvailability(boolean available, int availableCount) {}

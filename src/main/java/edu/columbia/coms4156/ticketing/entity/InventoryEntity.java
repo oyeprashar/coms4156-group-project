@@ -1,4 +1,3 @@
-
 package edu.columbia.coms4156.ticketing.entity;
 
 import jakarta.persistence.Column;
@@ -9,9 +8,7 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
-/**
- * Tracks total and available ticket inventory for an event.
- */
+/** Tracks total and available ticket inventory for an event. */
 @Entity
 @Table(name = "inventory")
 public class InventoryEntity {
@@ -31,13 +28,11 @@ public class InventoryEntity {
   @Column(name = "available_tickets")
   private int availableTickets;
 
-  protected InventoryEntity() {
-  }
+  /** Required by JPA. */
+  protected InventoryEntity() {}
 
-  public InventoryEntity(
-    EventEntity event,
-    int totalTickets,
-    int availableTickets) {
+  /** Creates inventory for an event. */
+  public InventoryEntity(EventEntity event, int totalTickets, int availableTickets) {
 
     this.event = event;
     this.totalTickets = totalTickets;

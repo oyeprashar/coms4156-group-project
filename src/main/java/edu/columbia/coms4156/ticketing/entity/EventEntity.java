@@ -1,4 +1,3 @@
-
 package edu.columbia.coms4156.ticketing.entity;
 
 import jakarta.persistence.Column;
@@ -11,9 +10,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-/**
- * Represents an event available for ticket booking.
- */
+/** Represents an event available for ticket booking. */
 @Entity
 @Table(name = "events")
 public class EventEntity {
@@ -41,18 +38,19 @@ public class EventEntity {
   @JoinColumn(name = "venue_id", nullable = false)
   private VenueEntity venue;
 
-  protected EventEntity() {
-  }
+  /** Required by JPA. */
+  protected EventEntity() {}
 
+  /** Creates an event with its details, pricing, and venue. */
   public EventEntity(
-    String eventId,
-    String name,
-    String category,
-    OffsetDateTime startTime,
-    BigDecimal minPrice,
-    BigDecimal maxPrice,
-    String currency,
-    VenueEntity venue) {
+      String eventId,
+      String name,
+      String category,
+      OffsetDateTime startTime,
+      BigDecimal minPrice,
+      BigDecimal maxPrice,
+      String currency,
+      VenueEntity venue) {
 
     this.eventId = eventId;
     this.name = name;

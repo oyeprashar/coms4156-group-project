@@ -15,8 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MockitoConfigurationTests {
 
   // LocalDate is final, so this also exercises the inline mock maker.
-  @Mock
-  private LocalDate date;
+  @Mock private LocalDate date;
 
   @Test
   void finalClassesCanBeMocked() {
