@@ -10,8 +10,7 @@ import org.springframework.context.ApplicationContext;
 @SpringBootTest(useMainMethod = SpringBootTest.UseMainMethod.ALWAYS)
 class TicketingApplicationTests {
 
-  @Autowired
-  private ApplicationContext applicationContext;
+  @Autowired private ApplicationContext applicationContext;
 
   @Test
   void applicationStartsWithoutDatabaseConfiguration() {

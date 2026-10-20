@@ -256,4 +256,228 @@ so setup does not depend on choosing or running a database.
 - Amelie Dequito - amd2398
 
 
+## Operation 1: Search Events API
+
+### Overview
+
+The Event Search API allows clients to search upcoming events using optional filters such as city, category, date range, ticket price, and event name.
+
+Events are retrieved from PostgreSQL using Spring Data JPA. Each response includes event information, venue details, pricing, and current ticket availability.
+
+### Endpoint
+
+```http
+GET /v1/events
+```
+
+**Base URL:** `http://localhost:8080`
+
+### Query Parameters
+
+All parameters are optional.
+
+| Parameter | Type | Description | Default |
+|---|---|---|---|
+| `city` | String | Case-insensitive exact city match | All cities |
+| `category` | String | Case-insensitive exact category match | All categories |
+| `startDate` | Date (`YYYY-MM-DD`) | Events on or after this UTC date | No additional lower bound |
+| `endDate` | Date (`YYYY-MM-DD`) | Events on or before this UTC date | No upper bound |
+| `minPrice` | Decimal | Minimum desired ticket price | No minimum |
+| `maxPrice` | Decimal | Maximum desired ticket price | No maximum |
+| `keyword` | String | Case-insensitive partial match against event names | All names |
+| `page` | Integer | Zero-indexed page number | `0` |
+| `pageSize` | Integer | Number of events per page (1–100) | `10` |
+
+All supplied filters are combined using AND conditions.
+
+Price filtering uses range overlap: an event matches when its advertised minimum-to-maximum price range overlaps the requested price range.
+
+Only upcoming events are returned, sorted by start time and then event ID.
+
+### Running the Service
+
+**Prerequisites:**
+- Java 17
+- Docker and Docker Compose
+- PostgreSQL container configuration in `compose.yaml`
+
+**1. Start PostgreSQL**
+
+From the project root:
+
+```bash
+docker compose up -d postgres
+```
+
+**2. Populate the database**
+
+The database tables are generated from the JPA entities when the Spring Boot application starts, using `spring.jpa.hibernate.ddl-auto=update`.
+
+For a fresh database, start the application once to create the tables, then load the sample data:
+
+```bash
+docker compose exec -T postgres \
+  psql -U ticketing -d ticketing \
+  < src/main/resources/db/seed.sql
+```
+
+The seed script includes sample venues, events, and ticket inventory. It can be rerun without duplicating existing records.
+
+**3. Run the Spring Boot application**
+
+```bash
+./gradlew bootRun
+```
+
+The API is accessible at `http://localhost:8080`.
+
+The local PostgreSQL container is exposed on port `5433`, as configured in `compose.yaml`.
+
+### Example Requests
+
+**1. Retrieve upcoming events**
+
+```bash
+curl "http://localhost:8080/v1/events"
+```
+
+Returns the first 10 upcoming events.
+
+**2. Filter by city**
+
+```bash
+curl "http://localhost:8080/v1/events?city=Chicago"
+```
+
+Returns upcoming events hosted in Chicago.
+
+**3. Combine city and category**
+
+```bash
+curl "http://localhost:8080/v1/events?city=New%20York&category=concert"
+```
+
+Returns upcoming concerts in New York.
+
+**4. Search by keyword**
+
+```bash
+curl "http://localhost:8080/v1/events?keyword=Coldplay"
+```
+
+Returns upcoming events whose names contain `Coldplay`.
+
+**5. Search by date range**
+
+```bash
+curl "http://localhost:8080/v1/events?startDate=2026-11-01&endDate=2026-12-05"
+```
+
+Returns events occurring within the specified UTC date range.
+
+**6. Search by ticket price**
+
+```bash
+curl "http://localhost:8080/v1/events?minPrice=100&maxPrice=150"
+```
+
+Returns events whose ticket price ranges overlap $100–$150.
+
+**7. Pagination**
+
+```bash
+curl "http://localhost:8080/v1/events?page=1&pageSize=3"
+```
+
+Returns the second page, containing up to three events.
+
+### Example Successful Response
+
+**HTTP 200 OK**
+
+```json
+{
+  "events": [
+    {
+      "eventId": "evt_001",
+      "name": "Coldplay Live",
+      "category": "concert",
+      "venue": {
+        "venueId": "venue_001",
+        "name": "Madison Square Garden",
+        "city": "New York"
+      },
+      "startTime": "2026-11-16T00:30:00Z",
+      "ticketAvailability": {
+        "available": true,
+        "availableCount": 842
+      },
+      "priceRange": {
+        "min": 85.00,
+        "max": 240.00,
+        "currency": "USD"
+      }
+    }
+  ],
+  "count": 1
+}
+```
+
+The `events` array contains the current page of results. The `count` field represents the total number of matching events across all pages.
+
+### Error Handling
+
+Invalid search parameters return HTTP 400.
+
+| Scenario | Example | Response |
+|---|---|---|
+| Invalid price range | `minPrice=300&maxPrice=100` | `400 Bad Request` |
+| Negative price | `minPrice=-10` | `400 Bad Request` |
+| Invalid date range | `startDate=2027-05-01&endDate=2026-11-01` | `400 Bad Request` |
+| Negative page | `page=-1` | `400 Bad Request` |
+| Invalid page size | `pageSize=0` or `pageSize=101` | `400 Bad Request` |
+| Invalid parameter format | `page=abc` | `400 Bad Request` |
+
+**Example invalid request:**
+
+```bash
+curl -i "http://localhost:8080/v1/events?minPrice=300&maxPrice=100"
+```
+
+**Response:**
+
+```json
+{
+  "error": "minPrice cannot exceed maxPrice"
+}
+```
+
+Invalid parameter types are rejected by Spring's request parameter binding; their error response body may differ from the example above.
+
+### No Matching Events
+
+A valid search that produces no matching events returns HTTP 200 with an empty array.
+
+```bash
+curl "http://localhost:8080/v1/events?city=Los%20Angeles"
+```
+
+**Response:**
+
+```json
+{
+  "events": [],
+  "count": 0
+}
+```
+
+### Data and Side Effects
+
+- **Database:** PostgreSQL
+- **Database tables:** `events`, `venues`, `inventory`
+- **Persistence:** Spring Data JPA
+- **Read-only:** This endpoint does not create, update, reserve, or delete tickets or events.
+- **Availability:** Retrieved from the inventory table at
+
+
 
