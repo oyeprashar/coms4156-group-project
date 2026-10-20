@@ -1,0 +1,46 @@
+# Gradle caches and build output
+.gradle/
+build/
+out/
+bin/
+
+# Compiled Java files and packaged applications
+*.class
+*.jar
+*.war
+*.ear
+
+# Required by gradlew and gradlew.bat; commit this JAR with the wrapper scripts.
+!/gradle/wrapper/gradle-wrapper.jar
+
+# IDE metadata
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.vscode/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+src/main/resources/application-local.yaml
+
+# Runtime logs, heap dumps, and JVM crash reports
+*.log
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# Operating system files and editor temporary files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+*.swp
+*.swo
