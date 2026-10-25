@@ -15,6 +15,9 @@ import edu.columbia.coms4156.ticketing.repository.EventRepository;
 import edu.columbia.coms4156.ticketing.repository.InventoryRepository;
 import edu.columbia.coms4156.ticketing.repository.ReservationRepository;
 import edu.columbia.coms4156.ticketing.repository.TicketRepository;
+import edu.columbia.coms4156.ticketing.entity.InventoryEntity;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationResponse;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -27,7 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Handles ticket reservations, confirmations, and ticket issuance. */
+/**
+ * Handles reservation state changes, including confirming holds and issuing
+ * tickets.
+ */
 @Service
 public class ReservationService {
 
@@ -63,16 +69,14 @@ public class ReservationService {
       throw new IllegalArgumentException("Invalid reservation request");
     }
 
-    EventEntity event =
-        eventRepository
-            .findById(request.eventId())
-            .orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+    EventEntity event = eventRepository
+        .findById(request.eventId())
+        .orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 
-    InventoryEntity inventory =
-        inventoryRepository
-            .findByEventIdForUpdate(request.eventId())
-            .orElseThrow(() -> new IllegalArgumentException("Inventory not found"));
+    InventoryEntity inventory = inventoryRepository
+        .findByEventIdForUpdate(request.eventId())
+        .orElseThrow(() -> new IllegalArgumentException("Inventory not found"));
 
     if (inventory.getAvailableTickets() < request.quantity()) {
       throw new InsufficientAvailabilityException(
@@ -85,14 +89,13 @@ public class ReservationService {
     String reservationId = "res_" + UUID.randomUUID();
     OffsetDateTime expiresAt = OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(HOLD_MINUTES);
 
-    ReservationEntity reservation =
-        new ReservationEntity(
-            reservationId,
-            event,
-            request.customerId(),
-            request.quantity(),
-            ReservationStatus.HELD,
-            expiresAt);
+    ReservationEntity reservation = new ReservationEntity(
+        reservationId,
+        event,
+        request.customerId(),
+        request.quantity(),
+        ReservationStatus.HELD,
+        expiresAt);
 
     inventoryRepository.save(inventory);
     reservationRepository.save(reservation);
@@ -102,12 +105,18 @@ public class ReservationService {
   }
 
   /**
-   * Confirms a held reservation and issues one ticket per reserved seat. The reservation row is
-   * locked for the whole transaction, so concurrent confirmations cannot issue tickets twice.
+   * Confirms a held reservation and issues one ticket per reserved seat. The
+   * reservation row is
+   * locked for the whole transaction, so concurrent confirmations cannot issue
+   * tickets twice.
    *
-   * <p>A hold past its expiry is marked EXPIRED and its tickets go back into inventory before the
-   * request is rejected; that change is committed even though the request fails. Repeating a
-   * successful confirmation with the same idempotency key returns the original result.
+   * <p>
+   * A hold past its expiry is marked EXPIRED and its tickets go back into
+   * inventory before the
+   * request is rejected; that change is committed even though the request fails.
+   * Repeating a
+   * successful confirmation with the same idempotency key returns the original
+   * result.
    */
   @Transactional(noRollbackFor = ReservationConfirmationException.class)
   public ConfirmReservationResponse confirmReservation(
@@ -115,13 +124,11 @@ public class ReservationService {
 
     validateRequest(request);
 
-    ReservationEntity reservation =
-        reservationRepository
-            .findByIdForUpdate(reservationId)
-            .orElseThrow(
-                () ->
-                    new ReservationConfirmationException(
-                        ConfirmationError.RESERVATION_NOT_FOUND, reservationId));
+    ReservationEntity reservation = reservationRepository
+        .findByIdForUpdate(reservationId)
+        .orElseThrow(
+            () -> new ReservationConfirmationException(
+                ConfirmationError.RESERVATION_NOT_FOUND, reservationId));
 
     if (!reservation.getCustomerId().equals(request.customerId())) {
       throw new ReservationConfirmationException(
@@ -139,18 +146,19 @@ public class ReservationService {
             ConfirmationError.ALREADY_CONFIRMED, reservationId);
       }
       case EXPIRED ->
-          throw new ReservationConfirmationException(
-              ConfirmationError.RESERVATION_EXPIRED, reservationId);
+        throw new ReservationConfirmationException(
+            ConfirmationError.RESERVATION_EXPIRED, reservationId);
       case CANCELLED ->
-          throw new ReservationConfirmationException(
-              ConfirmationError.RESERVATION_CANCELLED, reservationId);
+        throw new ReservationConfirmationException(
+            ConfirmationError.RESERVATION_CANCELLED, reservationId);
       case HELD -> {
         // Continue below.
       }
       default -> throw new IllegalStateException("Unknown status " + reservation.getStatus());
     }
 
-    // Databases store microseconds, so truncate to keep retried responses identical.
+    // Databases store microseconds, so truncate to keep retried responses
+    // identical.
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
 
     if (!now.isBefore(reservation.getExpiresAt())) {
@@ -194,15 +202,17 @@ public class ReservationService {
     return value == null || value.isBlank();
   }
 
-  /** Converts a confirmed reservation and its tickets into the public API response. */
+  /**
+   * Converts a confirmed reservation and its tickets into the public API
+   * response.
+   */
   private ConfirmReservationResponse toResponse(
       ReservationEntity reservation, List<TicketEntity> tickets) {
 
-    List<IssuedTicket> issued =
-        tickets.stream()
-            .map(ticket -> new IssuedTicket(ticket.getTicketId()))
-            .sorted(Comparator.comparing(IssuedTicket::ticketId))
-            .toList();
+    List<IssuedTicket> issued = tickets.stream()
+        .map(ticket -> new IssuedTicket(ticket.getTicketId()))
+        .sorted(Comparator.comparing(IssuedTicket::ticketId))
+        .toList();
 
     return new ConfirmReservationResponse(
         reservation.getReservationId(),
