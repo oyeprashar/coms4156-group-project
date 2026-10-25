@@ -12,6 +12,7 @@ import edu.columbia.coms4156.ticketing.repository.ReservationRepository;
 import edu.columbia.coms4156.ticketing.repository.TicketRepository;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -87,7 +88,8 @@ public class ReservationService {
       default -> throw new IllegalStateException("Unknown status " + reservation.getStatus());
     }
 
-    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    // Databases store microseconds, so truncate to keep retried responses identical.
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
 
     if (!now.isBefore(reservation.getExpiresAt())) {
       reservation.setStatus(ReservationStatus.EXPIRED);
