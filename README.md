@@ -578,3 +578,85 @@ Error bodies include the reservation ID, for example:
   reads them from the `tickets` table.
 - **Reservation states:** `HELD`, `CONFIRMED`, `EXPIRED`, `CANCELLED`. The reservation
   table is shared with Operations 2 and 5.
+
+## Operation 5: Cancel Reservation API
+
+### Overview
+
+The Cancel Reservation API allows clients to release a held reservation before it is
+confirmed. It verifies that the reservation belongs to the caller and is currently in
+the `HELD` state, updates its status to `CANCELLED`, and returns the reserved tickets back
+to the event's available inventory in a single transaction.
+
+Once cancelled, tickets are immediately available for other customers to reserve.
+
+### Endpoint
+
+```http
+POST /v1/reservations/{reservationId}/cancel
+```
+
+### Request Body
+
+| Field | Type | Description |
+|---|---|---|
+| `customerId` | String | Customer that owns the reservation |
+
+`customerId` is required.
+
+### Behavior
+
+- **Ownership:** The reservation's `customerId` must match the request. If another
+  customer attempts to cancel the reservation, the request is rejected with `403 Forbidden`.
+- **Hold state:** Only `HELD` reservations can be cancelled. If a reservation is already
+  confirmed, it cannot be cancelled and is rejected with `409 Conflict`.
+- **Inventory restoration:** When successfully cancelled, the reservation's quantity of
+  tickets is atomically added back to the event's available inventory.
+- **Concurrency:** The reservation row is locked (`SELECT ... FOR UPDATE`) during the
+  transaction to prevent race conditions from releasing tickets more than once.
+
+### Example Request
+
+```bash
+curl -X POST "http://localhost:8080/v1/reservations/res_demo_001/cancel" \
+  -H "Content-Type: application/json" \
+  -d '{"customerId": "cust_001"}'
+```
+
+### Example Successful Response
+
+**HTTP 200 OK**
+
+```json
+{
+  "reservationId": "res_demo_001",
+  "eventId": "evt_001",
+  "status": "CANCELLED",
+  "releasedTickets": 2,
+  "availableTickets": 844
+}
+```
+
+### Error Responses
+
+| HTTP status | `error` | When |
+|---|---|---|
+| 400 | `customerId is required` | `customerId` is missing or blank |
+| 403 | `RESERVATION_NOT_OWNED` | `customerId` does not match the reservation |
+| 404 | `RESERVATION_NOT_FOUND` | No reservation exists with this ID |
+| 409 | `RESERVATION_ALREADY_CONFIRMED` | The reservation has already been confirmed |
+
+Error bodies for domain errors include the reservation ID:
+
+```json
+{
+  "error": "RESERVATION_NOT_OWNED",
+  "reservationId": "res_demo_001"
+}
+```
+
+### Data and Side Effects
+
+- **Database tables:** `reservations` (updates status to `CANCELLED`), `inventory` (increases `available_tickets` by the released quantity)
+- **Reservation states:** Transitions from `HELD` to `CANCELLED`.
+- **Inventory:** Returns tickets to inventory using an atomic update so availability counts stay consistent under concurrent traffic.
