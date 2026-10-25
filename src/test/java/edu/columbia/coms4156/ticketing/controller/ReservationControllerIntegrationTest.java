@@ -103,7 +103,8 @@ class ReservationControllerIntegrationTest {
         .andExpect(jsonPath("$.tickets.length()").value(2))
         .andExpect(jsonPath("$.confirmedAt").exists());
 
-    assertEquals(2, ticketRepository.findByReservationReservationIdOrderByTicketId("res_held").size());
+    assertEquals(
+        2, ticketRepository.findByReservationReservationIdOrderByTicketId("res_held").size());
     assertEquals(
         ReservationStatus.CONFIRMED,
         reservationRepository.findById("res_held").orElseThrow().getStatus());
@@ -122,7 +123,8 @@ class ReservationControllerIntegrationTest {
             .getContentAsString();
 
     assertEquals(first, second);
-    assertEquals(2, ticketRepository.findByReservationReservationIdOrderByTicketId("res_held").size());
+    assertEquals(
+        2, ticketRepository.findByReservationReservationIdOrderByTicketId("res_held").size());
   }
 
   @Test

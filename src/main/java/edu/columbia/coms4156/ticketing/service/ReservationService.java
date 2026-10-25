@@ -40,10 +40,10 @@ public class ReservationService {
 
   /** Initializes the reservation service with its repositories. */
   public ReservationService(
-    EventRepository eventRepository,
-    InventoryRepository inventoryRepository,
-    ReservationRepository reservationRepository,
-    TicketRepository ticketRepository) {
+      EventRepository eventRepository,
+      InventoryRepository inventoryRepository,
+      ReservationRepository reservationRepository,
+      TicketRepository ticketRepository) {
     this.eventRepository = eventRepository;
     this.inventoryRepository = inventoryRepository;
     this.reservationRepository = reservationRepository;
@@ -55,28 +55,28 @@ public class ReservationService {
   public ReservationResponse reserveTickets(ReservationRequest request) {
 
     if (request == null
-      || request.eventId() == null
-      || request.eventId().isBlank()
-      || request.customerId() == null
-      || request.customerId().isBlank()
-      || request.quantity() <= 0) {
+        || request.eventId() == null
+        || request.eventId().isBlank()
+        || request.customerId() == null
+        || request.customerId().isBlank()
+        || request.quantity() <= 0) {
       throw new IllegalArgumentException("Invalid reservation request");
     }
 
     EventEntity event =
-      eventRepository
-        .findById(request.eventId())
-        .orElseThrow(
-          () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+        eventRepository
+            .findById(request.eventId())
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
 
     InventoryEntity inventory =
-      inventoryRepository
-        .findByEventIdForUpdate(request.eventId())
-        .orElseThrow(() -> new IllegalArgumentException("Inventory not found"));
+        inventoryRepository
+            .findByEventIdForUpdate(request.eventId())
+            .orElseThrow(() -> new IllegalArgumentException("Inventory not found"));
 
     if (inventory.getAvailableTickets() < request.quantity()) {
       throw new InsufficientAvailabilityException(
-        request.quantity(), inventory.getAvailableTickets());
+          request.quantity(), inventory.getAvailableTickets());
     }
 
     int remainingTickets = inventory.getAvailableTickets() - request.quantity();
@@ -86,14 +86,19 @@ public class ReservationService {
     OffsetDateTime expiresAt = OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(HOLD_MINUTES);
 
     ReservationEntity reservation =
-      new ReservationEntity(
-        reservationId, event, request.customerId(), request.quantity(), "HELD", expiresAt);
+        new ReservationEntity(
+            reservationId,
+            event,
+            request.customerId(),
+            request.quantity(),
+            ReservationStatus.HELD,
+            expiresAt);
 
     inventoryRepository.save(inventory);
     reservationRepository.save(reservation);
 
     return new ReservationResponse(
-      reservationId, request.eventId(), request.quantity(), "HELD", expiresAt, remainingTickets);
+        reservationId, request.eventId(), request.quantity(), "HELD", expiresAt, remainingTickets);
   }
 
   /**
@@ -106,39 +111,39 @@ public class ReservationService {
    */
   @Transactional(noRollbackFor = ReservationConfirmationException.class)
   public ConfirmReservationResponse confirmReservation(
-    String reservationId, ConfirmReservationRequest request) {
+      String reservationId, ConfirmReservationRequest request) {
 
     validateRequest(request);
 
     ReservationEntity reservation =
-      reservationRepository
-        .findByIdForUpdate(reservationId)
-        .orElseThrow(
-          () ->
-            new ReservationConfirmationException(
-              ConfirmationError.RESERVATION_NOT_FOUND, reservationId));
+        reservationRepository
+            .findByIdForUpdate(reservationId)
+            .orElseThrow(
+                () ->
+                    new ReservationConfirmationException(
+                        ConfirmationError.RESERVATION_NOT_FOUND, reservationId));
 
     if (!reservation.getCustomerId().equals(request.customerId())) {
       throw new ReservationConfirmationException(
-        ConfirmationError.RESERVATION_NOT_OWNED, reservationId);
+          ConfirmationError.RESERVATION_NOT_OWNED, reservationId);
     }
 
     switch (reservation.getStatus()) {
       case CONFIRMED -> {
         if (request.idempotencyKey().equals(reservation.getConfirmIdempotencyKey())) {
           return toResponse(
-            reservation,
-            ticketRepository.findByReservationReservationIdOrderByTicketId(reservationId));
+              reservation,
+              ticketRepository.findByReservationReservationIdOrderByTicketId(reservationId));
         }
         throw new ReservationConfirmationException(
-          ConfirmationError.ALREADY_CONFIRMED, reservationId);
+            ConfirmationError.ALREADY_CONFIRMED, reservationId);
       }
       case EXPIRED ->
-        throw new ReservationConfirmationException(
-          ConfirmationError.RESERVATION_EXPIRED, reservationId);
+          throw new ReservationConfirmationException(
+              ConfirmationError.RESERVATION_EXPIRED, reservationId);
       case CANCELLED ->
-        throw new ReservationConfirmationException(
-          ConfirmationError.RESERVATION_CANCELLED, reservationId);
+          throw new ReservationConfirmationException(
+              ConfirmationError.RESERVATION_CANCELLED, reservationId);
       case HELD -> {
         // Continue below.
       }
@@ -152,9 +157,9 @@ public class ReservationService {
       reservation.setStatus(ReservationStatus.EXPIRED);
       reservationRepository.save(reservation);
       inventoryRepository.releaseTickets(
-        reservation.getEvent().getEventId(), reservation.getQuantity());
+          reservation.getEvent().getEventId(), reservation.getQuantity());
       throw new ReservationConfirmationException(
-        ConfirmationError.RESERVATION_EXPIRED, reservationId);
+          ConfirmationError.RESERVATION_EXPIRED, reservationId);
     }
 
     reservation.confirm(request.paymentReference(), request.idempotencyKey(), now);
@@ -163,12 +168,12 @@ public class ReservationService {
     List<TicketEntity> tickets = new ArrayList<>();
     for (int i = 0; i < reservation.getQuantity(); i++) {
       tickets.add(
-        new TicketEntity(
-          "tkt_" + UUID.randomUUID(),
-          reservation.getEvent(),
-          reservation,
-          TicketStatus.ISSUED,
-          now));
+          new TicketEntity(
+              "tkt_" + UUID.randomUUID(),
+              reservation.getEvent(),
+              reservation,
+              TicketStatus.ISSUED,
+              now));
     }
 
     return toResponse(reservation, ticketRepository.saveAll(tickets));
@@ -177,11 +182,11 @@ public class ReservationService {
   /** Rejects confirmation requests with missing fields. */
   private void validateRequest(ConfirmReservationRequest request) {
     if (request == null
-      || isBlank(request.customerId())
-      || isBlank(request.paymentReference())
-      || isBlank(request.idempotencyKey())) {
+        || isBlank(request.customerId())
+        || isBlank(request.paymentReference())
+        || isBlank(request.idempotencyKey())) {
       throw new IllegalArgumentException(
-        "customerId, paymentReference, and idempotencyKey are required");
+          "customerId, paymentReference, and idempotencyKey are required");
     }
   }
 
@@ -191,20 +196,19 @@ public class ReservationService {
 
   /** Converts a confirmed reservation and its tickets into the public API response. */
   private ConfirmReservationResponse toResponse(
-    ReservationEntity reservation, List<TicketEntity> tickets) {
+      ReservationEntity reservation, List<TicketEntity> tickets) {
 
     List<IssuedTicket> issued =
-      tickets.stream()
-        .map(ticket -> new IssuedTicket(ticket.getTicketId()))
-        .sorted(Comparator.comparing(IssuedTicket::ticketId))
-        .toList();
+        tickets.stream()
+            .map(ticket -> new IssuedTicket(ticket.getTicketId()))
+            .sorted(Comparator.comparing(IssuedTicket::ticketId))
+            .toList();
 
     return new ConfirmReservationResponse(
-      reservation.getReservationId(),
-      reservation.getEvent().getEventId(),
-      reservation.getStatus().name(),
-      issued,
-      reservation.getConfirmedAt());
+        reservation.getReservationId(),
+        reservation.getEvent().getEventId(),
+        reservation.getStatus().name(),
+        issued,
+        reservation.getConfirmedAt());
   }
 }
-

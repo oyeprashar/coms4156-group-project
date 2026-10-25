@@ -1,7 +1,10 @@
 package edu.columbia.coms4156.ticketing.controller;
 
+import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationResponse;
 import edu.columbia.coms4156.ticketing.pojo.ReservationRequest;
 import edu.columbia.coms4156.ticketing.pojo.ReservationResponse;
+import edu.columbia.coms4156.ticketing.service.ReservationConfirmationException;
 import edu.columbia.coms4156.ticketing.service.ReservationService;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -12,19 +15,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationResponse;
-import edu.columbia.coms4156.ticketing.service.ReservationConfirmationException;
-import java.util.Map;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationRequest;
 
+/** Handles HTTP requests for ticket reservations and confirmations. */
 @RestController
 @RequestMapping("/v1/reservations")
 public class ReservationController {
 
   private final ReservationService reservationService;
 
+  /**
+   * Creates the reservation controller.
+   *
+   * @param reservationService service for reservation operations
+   */
   public ReservationController(ReservationService reservationService) {
     this.reservationService = reservationService;
   }
@@ -54,8 +57,7 @@ public class ReservationController {
         switch (exception.getError()) {
           case RESERVATION_NOT_FOUND -> HttpStatus.NOT_FOUND;
           case RESERVATION_NOT_OWNED -> HttpStatus.FORBIDDEN;
-          case RESERVATION_EXPIRED, RESERVATION_CANCELLED, ALREADY_CONFIRMED ->
-              HttpStatus.CONFLICT;
+          case RESERVATION_EXPIRED, RESERVATION_CANCELLED, ALREADY_CONFIRMED -> HttpStatus.CONFLICT;
         };
 
     return ResponseEntity.status(status)
