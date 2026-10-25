@@ -65,3 +65,16 @@ INSERT INTO inventory (
       ('evt_009', 700, 550),
       ('evt_010', 900, 650)
     ON CONFLICT (event_id) DO NOTHING;
+
+-- Sample held reservation for trying reservation confirmation before
+-- the reservation API exists
+INSERT INTO reservations (
+    reservation_id,
+    event_id,
+    customer_id,
+    quantity,
+    status,
+    expires_at
+) VALUES
+      ('res_demo_001', 'evt_001', 'cust_001', 2, 'HELD', '2027-12-31 23:59:00-05')
+    ON CONFLICT (reservation_id) DO NOTHING;
