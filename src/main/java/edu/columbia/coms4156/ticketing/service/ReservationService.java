@@ -6,6 +6,8 @@ import edu.columbia.coms4156.ticketing.entity.ReservationEntity;
 import edu.columbia.coms4156.ticketing.entity.ReservationStatus;
 import edu.columbia.coms4156.ticketing.entity.TicketEntity;
 import edu.columbia.coms4156.ticketing.entity.TicketStatus;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationResponse;
 import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationRequest;
 import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationResponse;
 import edu.columbia.coms4156.ticketing.pojo.IssuedTicket;
@@ -15,9 +17,6 @@ import edu.columbia.coms4156.ticketing.repository.EventRepository;
 import edu.columbia.coms4156.ticketing.repository.InventoryRepository;
 import edu.columbia.coms4156.ticketing.repository.ReservationRepository;
 import edu.columbia.coms4156.ticketing.repository.TicketRepository;
-import edu.columbia.coms4156.ticketing.entity.InventoryEntity;
-import edu.columbia.coms4156.ticketing.pojo.CancelReservationRequest;
-import edu.columbia.coms4156.ticketing.pojo.CancelReservationResponse;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -106,17 +105,14 @@ public class ReservationService {
 
   /**
    * Confirms a held reservation and issues one ticket per reserved seat. The
-   * reservation row is
-   * locked for the whole transaction, so concurrent confirmations cannot issue
-   * tickets twice.
+   * reservation row is locked for the whole transaction, so concurrent
+   * confirmations cannot issue tickets twice.
    *
-   * <p>
-   * A hold past its expiry is marked EXPIRED and its tickets go back into
-   * inventory before the
-   * request is rejected; that change is committed even though the request fails.
-   * Repeating a
-   * successful confirmation with the same idempotency key returns the original
-   * result.
+   * <p>A hold past its expiry is marked EXPIRED and its tickets go back into
+   * inventory before the request is rejected; that change is committed even
+   * though the request fails.
+   * Repeating a successful confirmation with the same idempotency key returns the
+   * original result.
    */
   @Transactional(noRollbackFor = ReservationConfirmationException.class)
   public ConfirmReservationResponse confirmReservation(
@@ -185,6 +181,67 @@ public class ReservationService {
     }
 
     return toResponse(reservation, ticketRepository.saveAll(tickets));
+  }
+
+  /**
+   * Cancels a held reservation and returns its tickets to inventory.
+   *
+   * <p>Only HELD reservations can be cancelled. The reservation row is locked for
+   * the whole transaction so concurrent cancellations cannot release tickets more
+   * than once.
+   */
+  @Transactional
+  public CancelReservationResponse cancelReservation(
+      String reservationId, CancelReservationRequest request) {
+
+    if (request == null || isBlank(request.customerId())) {
+      throw new IllegalArgumentException("customerId is required");
+    }
+
+    // Find and lock reservation so two separate requests can't cancel reservation
+    // at same time.
+    ReservationEntity reservation = reservationRepository
+        .findByIdForUpdate(reservationId)
+        .orElseThrow(
+            () -> new ReservationCancellationException(
+                CancellationError.RESERVATION_NOT_FOUND, reservationId));
+
+    if (!reservation.getCustomerId().equals(request.customerId())) {
+      throw new ReservationCancellationException(
+          CancellationError.RESERVATION_NOT_OWNED, reservationId);
+    }
+
+    // Check that reservation is HELD.
+    switch (reservation.getStatus()) {
+      case CONFIRMED ->
+        throw new ReservationCancellationException(
+            CancellationError.RESERVATION_ALREADY_CONFIRMED, reservationId);
+      case HELD -> {
+        // Only HELD proceeds below.
+      }
+      default ->
+        throw new IllegalStateException(
+            "Cannot cancel reservation in state: " + reservation.getStatus());
+    }
+
+    reservation.setStatus(ReservationStatus.CANCELLED);
+    reservationRepository.save(reservation);
+
+    // Return tickets to inventory.
+    inventoryRepository.releaseTickets(
+        reservation.getEvent().getEventId(), reservation.getQuantity());
+
+    int available = inventoryRepository
+        .findById(reservation.getEvent().getEventId())
+        .map(InventoryEntity::getAvailableTickets)
+        .orElse(-1);
+
+    return new CancelReservationResponse(
+        reservation.getReservationId(),
+        reservation.getEvent().getEventId(),
+        reservation.getStatus().name(),
+        reservation.getQuantity(),
+        available);
   }
 
   /** Rejects confirmation requests with missing fields. */
