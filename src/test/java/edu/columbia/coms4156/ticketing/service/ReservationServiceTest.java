@@ -259,7 +259,8 @@ class ReservationServiceTest {
 
     OffsetDateTime before = OffsetDateTime.now(ZoneOffset.UTC);
 
-    ReservationResponse response = reservationService.reserveTickets(new ReservationRequest("evt_001", 2, "cust_456"));
+    ReservationResponse response = reservationService.reserveTickets(
+        new ReservationRequest("evt_001", 2, "cust_456"));
 
     OffsetDateTime after = OffsetDateTime.now(ZoneOffset.UTC);
 
@@ -268,8 +269,11 @@ class ReservationServiceTest {
     assertTrue(response.expiresAt().isBefore(after.plusMinutes(11)));
   }
 
-  private ReservationEntity reservation(ReservationStatus status, OffsetDateTime expiresAt) {
-    ReservationEntity reservation = new ReservationEntity(RESERVATION_ID, event, CUSTOMER_ID, 2, status, expiresAt);
+  private ReservationEntity reservation(
+      ReservationStatus status,
+      OffsetDateTime expiresAt) {
+    ReservationEntity reservation = new ReservationEntity(
+        RESERVATION_ID, event, CUSTOMER_ID, 2, status, expiresAt);
     when(reservationRepository.findByIdForUpdate(RESERVATION_ID))
         .thenReturn(Optional.of(reservation));
     return reservation;
@@ -286,10 +290,12 @@ class ReservationServiceTest {
   @Test
   @SuppressWarnings("unchecked")
   void confirmHeldReservationIssuesOneTicketPerSeat() {
-    when(ticketRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(ticketRepository.saveAll(anyList())).thenAnswer(
+        invocation -> invocation.getArgument(0));
     final ReservationEntity reservation = heldReservation();
 
-    ConfirmReservationResponse response = reservationService.confirmReservation(RESERVATION_ID, request("key-1"));
+    ConfirmReservationResponse response = reservationService.confirmReservation(
+        RESERVATION_ID, request("key-1"));
 
     assertEquals(RESERVATION_ID, response.reservationId());
     assertEquals("evt_001", response.eventId());
@@ -317,9 +323,11 @@ class ReservationServiceTest {
   @Test
   void confirmIssuesDistinctTicketIds() {
     heldReservation();
-    when(ticketRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(ticketRepository.saveAll(anyList())).thenAnswer(
+        invocation -> invocation.getArgument(0));
 
-    ConfirmReservationResponse response = reservationService.confirmReservation(RESERVATION_ID, request("key-1"));
+    ConfirmReservationResponse response = reservationService.confirmReservation(
+        RESERVATION_ID, request("key-1"));
 
     assertEquals(2, response.tickets().stream().map(IssuedTicket::ticketId).distinct().count());
   }
@@ -398,12 +406,24 @@ class ReservationServiceTest {
     reservation.confirm("PAY_123", "key-1", confirmedAt);
 
     List<TicketEntity> existing = List.of(
-        new TicketEntity("tkt_a", event, reservation, TicketStatus.ISSUED, confirmedAt),
-        new TicketEntity("tkt_b", event, reservation, TicketStatus.ISSUED, confirmedAt));
-    when(ticketRepository.findByReservationReservationIdOrderByTicketId(RESERVATION_ID))
+        new TicketEntity(
+            "tkt_a",
+            event,
+            reservation,
+            TicketStatus.ISSUED,
+            confirmedAt),
+        new TicketEntity(
+            "tkt_b",
+            event,
+            reservation,
+            TicketStatus.ISSUED,
+            confirmedAt));
+    when(ticketRepository.findByReservationReservationIdOrderByTicketId(
+        RESERVATION_ID))
         .thenReturn(existing);
 
-    ConfirmReservationResponse response = reservationService.confirmReservation(RESERVATION_ID, request("key-1"));
+    ConfirmReservationResponse response = reservationService.confirmReservation(
+        RESERVATION_ID, request("key-1"));
 
     assertEquals(List.of(new IssuedTicket("tkt_a"), new IssuedTicket("tkt_b")), response.tickets());
     assertEquals(confirmedAt, response.confirmedAt());
