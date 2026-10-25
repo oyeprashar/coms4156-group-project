@@ -480,4 +480,101 @@ curl "http://localhost:8080/v1/events?city=Los%20Angeles"
 - **Availability:** Retrieved from the inventory table at
 
 
+## Operation 3: Confirm Reservation API
 
+### Overview
+
+The Confirm Reservation API turns a held reservation into issued tickets. It checks that
+the reservation belongs to the caller and is still within its hold window, then marks it
+`CONFIRMED` and creates one ticket per reserved seat in the same transaction.
+
+Payment is out of scope: the service stores the client's payment reference but does not
+verify it.
+
+### Endpoint
+
+```http
+POST /v1/reservations/{reservationId}/confirm
+```
+
+### Request Body
+
+| Field | Type | Description |
+|---|---|---|
+| `customerId` | String | Customer that owns the reservation |
+| `paymentReference` | String | Client-supplied payment reference, stored as-is |
+| `idempotencyKey` | String | Key identifying this confirmation attempt for safe retries |
+
+All three fields are required.
+
+### Behavior
+
+- **Ownership:** the reservation's `customerId` must match the request.
+- **Hold window:** a `HELD` reservation can be confirmed only before its `expiresAt` time.
+  If the hold has expired, the reservation is marked `EXPIRED`, its tickets are returned
+  to the event's available inventory, and the request is rejected. The expiry is saved
+  even though the request fails, so the tickets are released exactly once.
+- **Safe retries:** repeating a successful confirmation with the same `idempotencyKey`
+  returns the original tickets and confirmation time without issuing new tickets. A
+  different key on an already confirmed reservation is rejected.
+- **Concurrency:** the reservation row is locked (`SELECT ... FOR UPDATE`) for the whole
+  confirmation, so simultaneous requests are applied one at a time.
+- **Inventory:** confirming does not change inventory, because tickets were already held
+  when the reservation was created.
+
+### Example Request
+
+```bash
+curl -X POST "http://localhost:8080/v1/reservations/res_demo_001/confirm" \
+  -H "Content-Type: application/json" \
+  -d '{"customerId": "cust_001", "paymentReference": "PAY_123", "idempotencyKey": "demo-key-1"}'
+```
+
+`res_demo_001` is a sample `HELD` reservation in `seed.sql` for trying this endpoint
+before the reservation API (Operation 2) is available.
+
+### Example Successful Response
+
+**HTTP 200 OK**
+
+```json
+{
+  "reservationId": "res_demo_001",
+  "eventId": "evt_001",
+  "status": "CONFIRMED",
+  "tickets": [
+    { "ticketId": "tkt_0c9e5b1e-6d0a-4b3f-9f53-1f7a2c4e8d11" },
+    { "ticketId": "tkt_7a41d2c8-3e5f-4c6b-8d9a-2b1e0f3c5a77" }
+  ],
+  "confirmedAt": "2026-10-25T16:55:02.123Z"
+}
+```
+
+### Error Responses
+
+| HTTP status | `error` | When |
+|---|---|---|
+| 400 | Message naming the required fields | A request field is missing or blank |
+| 403 | `RESERVATION_NOT_OWNED` | `customerId` does not match the reservation |
+| 404 | `RESERVATION_NOT_FOUND` | No reservation has this ID |
+| 409 | `RESERVATION_EXPIRED` | The hold window has passed |
+| 409 | `RESERVATION_CANCELLED` | The reservation was cancelled |
+| 409 | `ALREADY_CONFIRMED` | Already confirmed with a different idempotency key |
+
+Error bodies include the reservation ID, for example:
+
+```json
+{
+  "error": "RESERVATION_EXPIRED",
+  "reservationId": "res_789"
+}
+```
+
+### Data and Side Effects
+
+- **Database tables:** `reservations` (reads and updates status), `tickets` (inserts),
+  `inventory` (adds tickets back only when an expired hold is found)
+- **Ticket states:** issued tickets start as `ISSUED`; ticket verification (Operation 4)
+  reads them from the `tickets` table.
+- **Reservation states:** `HELD`, `CONFIRMED`, `EXPIRED`, `CANCELLED`. The reservation
+  table is shared with Operations 2 and 5.
