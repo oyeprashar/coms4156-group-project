@@ -800,3 +800,14 @@ This project uses AI tools to assist with code generation, documentation, and te
   After I started coding following the outline, I asked Claude for assistance if I was stuck
   and also to double check my work. Claude generated the unit tests after I reviewed their plan.
   Lastly, Claude also generated my part of the README after I input all the necessary information.
+
+- **Madhav Rajkondawar:** Claude Code for testing/tooling, setup, and the master test script.
+   Model used: Claude Opus 5.5 \
+   4bbebf75-926e-4ce0-a5bb-dc0f22b7fbe6 (Testing tools, API tests, and master test script)
+   Context: 85% left (154,500 used / 1M)
+
+   I leveraged Claude to add the general tools from the proposal as well as the associated files 
+   needed to take care of the testing. I also added the test script which checks all the flows and 
+   API testing then added to the README document for all my changes. I used Claude's assistance on
+   these and reviewed the changes after they were made as well as added to them where needed. 
+   Claude Pro Subscription has been utilized to achieve this.
