@@ -789,3 +789,12 @@ This project uses AI tools to assist with code generation, documentation, and te
    Context: 38% left (159,537 used / 258K)
 
    Codex acquired through free student offer from OpenAI.
+
+- **Jun Hong:** Claude Sonnet 5.5 for code generation and documentation assistance.
+  Cumulative Tokens: ~700k (every back and forth, resending context)
+  Unique Content Tokens: ~105k (counting all messages just once without re-reading context)
+
+  Used Claude to generate an outline of Operation 5, and then I reviewed and revised it.
+  After I started coding following the outline, I asked Claude for assistance if I was stuck
+  and also to double check my work. Claude generated the unit tests after I reviewed their plan.
+  Lastly, Claude also generated my part of the README after I input all the necessary information.
