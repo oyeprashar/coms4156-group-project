@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Findings SpotBugs should ignore. Give each exclusion a reason. -->
+<FindBugsFilter>
+  <!--
+    JPA entities must hold references to related entities, and response records hold
+    lists that are serialized straight to JSON. Copying them would break JPA's
+    relationship tracking without making the API safer.
+  -->
+  <Match>
+    <Or>
+      <Bug pattern="EI_EXPOSE_REP"/>
+      <Bug pattern="EI_EXPOSE_REP2"/>
+    </Or>
+    <Or>
+      <Package name="edu.columbia.coms4156.ticketing.entity"/>
+      <Package name="edu.columbia.coms4156.ticketing.pojo"/>
+    </Or>
+  </Match>
+
+  <!-- Tests format JSON text blocks, where a literal newline is harmless. -->
+  <Match>
+    <Class name="~.*Test(s)?"/>
+    <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+  </Match>
+</FindBugsFilter>

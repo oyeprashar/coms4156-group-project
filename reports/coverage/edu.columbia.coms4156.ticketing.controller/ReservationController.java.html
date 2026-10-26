@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.controller</a> &gt; <span class="el_source">ReservationController.java</span></div><h1>ReservationController.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.controller;
+
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationResponse;
+import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationResponse;
+import edu.columbia.coms4156.ticketing.pojo.ReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.ReservationResponse;
+import edu.columbia.coms4156.ticketing.service.ReservationCancellationException;
+import edu.columbia.coms4156.ticketing.service.ReservationConfirmationException;
+import edu.columbia.coms4156.ticketing.service.ReservationService;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/** Handles HTTP requests for ticket reservations and confirmations. */
+@RestController
+@RequestMapping(&quot;/v1/reservations&quot;)
+public class ReservationController {
+
+  private final ReservationService reservationService;
+
+  /**
+   * Creates the reservation controller.
+   *
+   * @param reservationService service for reservation operations
+   */
+<span class="fc" id="L34">  public ReservationController(ReservationService reservationService) {</span>
+<span class="fc" id="L35">    this.reservationService = reservationService;</span>
+<span class="fc" id="L36">  }</span>
+
+  /** Creates a new ticket reservation. */
+  @PostMapping
+  public ResponseEntity&lt;ReservationResponse&gt; reserveTickets(
+      @RequestBody ReservationRequest request) {
+<span class="fc" id="L42">    ReservationResponse response = reservationService.reserveTickets(request);</span>
+<span class="fc" id="L43">    return ResponseEntity.status(HttpStatus.CREATED).body(response);</span>
+  }
+
+  /** Confirms a held reservation and returns the issued tickets. */
+  @PostMapping(&quot;/{reservationId}/confirm&quot;)
+  public ConfirmReservationResponse confirmReservation(
+      @PathVariable String reservationId, @RequestBody ConfirmReservationRequest request) {
+<span class="fc" id="L50">    return reservationService.confirmReservation(reservationId, request);</span>
+  }
+
+  /** Cancels a held reservation and releases its tickets back into inventory. */
+  @PostMapping(&quot;/{reservationId}/cancel&quot;)
+  public CancelReservationResponse cancelReservation(
+      @PathVariable String reservationId, @RequestBody CancelReservationRequest request) {
+<span class="fc" id="L57">    return reservationService.cancelReservation(reservationId, request);</span>
+  }
+
+  /** Maps rejected cancellations to an HTTP status and error code. */
+  @ExceptionHandler(ReservationCancellationException.class)
+  public ResponseEntity&lt;Map&lt;String, String&gt;&gt; handleCancellationError(
+      ReservationCancellationException exception) {
+<span class="nc bnc" id="L64" title="All 3 branches missed.">    HttpStatus status = switch (exception.getError()) {</span>
+<span class="nc" id="L65">      case RESERVATION_NOT_FOUND -&gt; HttpStatus.NOT_FOUND;</span>
+<span class="nc" id="L66">      case RESERVATION_NOT_OWNED -&gt; HttpStatus.FORBIDDEN;</span>
+<span class="nc" id="L67">      case RESERVATION_ALREADY_CONFIRMED -&gt; HttpStatus.CONFLICT;</span>
+    };
+
+<span class="nc" id="L70">    return ResponseEntity.status(status)</span>
+<span class="nc" id="L71">        .body(</span>
+<span class="nc" id="L72">            Map.of(</span>
+<span class="nc" id="L73">                &quot;error&quot;, exception.getError().name(),</span>
+<span class="nc" id="L74">                &quot;reservationId&quot;, exception.getReservationId()));</span>
+  }
+
+  /** Maps rejected confirmations to an HTTP status and error code. */
+  @ExceptionHandler(ReservationConfirmationException.class)
+  public ResponseEntity&lt;Map&lt;String, String&gt;&gt; handleConfirmationError(
+      ReservationConfirmationException exception) {
+
+<span class="fc bfc" id="L82" title="All 3 branches covered.">    HttpStatus status = switch (exception.getError()) {</span>
+<span class="fc" id="L83">      case RESERVATION_NOT_FOUND -&gt; HttpStatus.NOT_FOUND;</span>
+<span class="fc" id="L84">      case RESERVATION_NOT_OWNED -&gt; HttpStatus.FORBIDDEN;</span>
+<span class="fc" id="L85">      case RESERVATION_EXPIRED, RESERVATION_CANCELLED, ALREADY_CONFIRMED -&gt; HttpStatus.CONFLICT;</span>
+    };
+
+<span class="fc" id="L88">    return ResponseEntity.status(status)</span>
+<span class="fc" id="L89">        .body(</span>
+<span class="fc" id="L90">            Map.of(</span>
+<span class="fc" id="L91">                &quot;error&quot;, exception.getError().name(),</span>
+<span class="fc" id="L92">                &quot;reservationId&quot;, exception.getReservationId()));</span>
+  }
+
+  /** Returns HTTP 400 for missing request fields. */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity&lt;Map&lt;String, String&gt;&gt; handleInvalidRequest(
+      IllegalArgumentException exception) {
+
+<span class="fc" id="L100">    return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="fc" id="L101">        .body(Map.of(&quot;error&quot;, exception.getMessage()));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TicketEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.entity</a> &gt; <span class="el_source">TicketEntity.java</span></div><h1>TicketEntity.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.OffsetDateTime;
+
+/** Represents a single ticket issued for a confirmed reservation. */
+@Entity
+@Table(name = &quot;tickets&quot;)
+public class TicketEntity {
+
+  @Id
+  @Column(name = &quot;ticket_id&quot;)
+  private String ticketId;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = &quot;event_id&quot;, nullable = false)
+  private EventEntity event;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = &quot;reservation_id&quot;, nullable = false)
+  private ReservationEntity reservation;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private TicketStatus status;
+
+  @Column(name = &quot;issued_at&quot;, nullable = false)
+  private OffsetDateTime issuedAt;
+
+  /** Required by JPA. */
+<span class="fc" id="L39">  protected TicketEntity() {}</span>
+
+  /** Creates a ticket issued against a reservation. */
+  public TicketEntity(
+      String ticketId,
+      EventEntity event,
+      ReservationEntity reservation,
+      TicketStatus status,
+<span class="fc" id="L47">      OffsetDateTime issuedAt) {</span>
+
+<span class="fc" id="L49">    this.ticketId = ticketId;</span>
+<span class="fc" id="L50">    this.event = event;</span>
+<span class="fc" id="L51">    this.reservation = reservation;</span>
+<span class="fc" id="L52">    this.status = status;</span>
+<span class="fc" id="L53">    this.issuedAt = issuedAt;</span>
+<span class="fc" id="L54">  }</span>
+
+  public String getTicketId() {
+<span class="fc" id="L57">    return ticketId;</span>
+  }
+
+  public EventEntity getEvent() {
+<span class="fc" id="L61">    return event;</span>
+  }
+
+  public ReservationEntity getReservation() {
+<span class="fc" id="L65">    return reservation;</span>
+  }
+
+  public TicketStatus getStatus() {
+<span class="fc" id="L69">    return status;</span>
+  }
+
+  public void setStatus(TicketStatus status) {
+<span class="nc" id="L73">    this.status = status;</span>
+<span class="nc" id="L74">  }</span>
+
+  public OffsetDateTime getIssuedAt() {
+<span class="nc" id="L77">    return issuedAt;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

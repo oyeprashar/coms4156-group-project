@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.service</a> &gt; <span class="el_source">EventService.java</span></div><h1>EventService.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.service;
+
+import edu.columbia.coms4156.ticketing.entity.EventEntity;
+import edu.columbia.coms4156.ticketing.repository.EventRepository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+/** Handles event searching, filtering, and pagination. */
+@Service
+public class EventService {
+
+  private final EventRepository eventRepository;
+
+  /** Initializes the event service with its repository. */
+<span class="fc" id="L24">  public EventService(EventRepository eventRepository) {</span>
+<span class="fc" id="L25">    this.eventRepository = eventRepository;</span>
+<span class="fc" id="L26">  }</span>
+
+  /**
+   * Finds upcoming events matching the supplied filters. Dates are interpreted as UTC calendar
+   * dates.
+   */
+  public Page&lt;EventEntity&gt; searchEvents(
+      String city,
+      String category,
+      LocalDate startDate,
+      LocalDate endDate,
+      BigDecimal minPrice,
+      BigDecimal maxPrice,
+      String keyword,
+      int page,
+      int pageSize) {
+
+<span class="fc" id="L43">    validateFilters(startDate, endDate, minPrice, maxPrice, page, pageSize);</span>
+
+<span class="fc" id="L45">    Specification&lt;EventEntity&gt; specification =</span>
+        (root, query, cb) -&gt; {
+<span class="fc" id="L47">          List&lt;jakarta.persistence.criteria.Predicate&gt; predicates = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L49">          predicates.add(cb.greaterThan(root.get(&quot;startTime&quot;), OffsetDateTime.now(ZoneOffset.UTC)));</span>
+
+<span class="pc bpc" id="L51" title="2 of 4 branches missed.">          if (city != null &amp;&amp; !city.isBlank()) {</span>
+<span class="fc" id="L52">            predicates.add(</span>
+<span class="fc" id="L53">                cb.equal(</span>
+<span class="fc" id="L54">                    cb.lower(root.get(&quot;venue&quot;).get(&quot;city&quot;)),</span>
+<span class="fc" id="L55">                    city.trim().toLowerCase(java.util.Locale.ROOT)));</span>
+          }
+
+<span class="pc bpc" id="L58" title="2 of 4 branches missed.">          if (category != null &amp;&amp; !category.isBlank()) {</span>
+<span class="fc" id="L59">            predicates.add(</span>
+<span class="fc" id="L60">                cb.equal(</span>
+<span class="fc" id="L61">                    cb.lower(root.get(&quot;category&quot;)),</span>
+<span class="fc" id="L62">                    category.trim().toLowerCase(java.util.Locale.ROOT)));</span>
+          }
+
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">          if (startDate != null) {</span>
+<span class="nc" id="L66">            predicates.add(</span>
+<span class="nc" id="L67">                cb.greaterThanOrEqualTo(</span>
+<span class="nc" id="L68">                    root.get(&quot;startTime&quot;), startDate.atStartOfDay().atOffset(ZoneOffset.UTC)));</span>
+          }
+
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">          if (endDate != null) {</span>
+<span class="nc" id="L72">            predicates.add(</span>
+<span class="nc" id="L73">                cb.lessThan(</span>
+<span class="nc" id="L74">                    root.get(&quot;startTime&quot;),</span>
+<span class="nc" id="L75">                    endDate.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC)));</span>
+          }
+
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">          if (minPrice != null) {</span>
+<span class="nc" id="L79">            predicates.add(cb.greaterThanOrEqualTo(root.get(&quot;maxPrice&quot;), minPrice));</span>
+          }
+
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">          if (maxPrice != null) {</span>
+<span class="nc" id="L83">            predicates.add(cb.lessThanOrEqualTo(root.get(&quot;minPrice&quot;), maxPrice));</span>
+          }
+
+<span class="pc bpc" id="L86" title="3 of 4 branches missed.">          if (keyword != null &amp;&amp; !keyword.isBlank()) {</span>
+<span class="nc" id="L87">            predicates.add(</span>
+<span class="nc" id="L88">                cb.like(</span>
+<span class="nc" id="L89">                    cb.lower(root.get(&quot;name&quot;)),</span>
+                    &quot;%&quot;
+                        + keyword
+<span class="nc" id="L92">                            .trim()</span>
+<span class="nc" id="L93">                            .toLowerCase(java.util.Locale.ROOT)</span>
+<span class="nc" id="L94">                            .replace(&quot;\\&quot;, &quot;\\\\&quot;)</span>
+<span class="nc" id="L95">                            .replace(&quot;%&quot;, &quot;\\%&quot;)</span>
+<span class="nc" id="L96">                            .replace(&quot;_&quot;, &quot;\\_&quot;)</span>
+                        + &quot;%&quot;,
+                    '\\'));
+          }
+
+<span class="fc" id="L101">          return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));</span>
+        };
+
+<span class="fc" id="L104">    PageRequest pageable =</span>
+<span class="fc" id="L105">        PageRequest.of(</span>
+<span class="fc" id="L106">            page, pageSize, Sort.by(&quot;startTime&quot;).ascending().and(Sort.by(&quot;eventId&quot;).ascending()));</span>
+
+<span class="fc" id="L108">    return eventRepository.findAll(specification, pageable);</span>
+  }
+
+  /** Rejects invalid search parameters. */
+  private void validateFilters(
+      LocalDate startDate,
+      LocalDate endDate,
+      BigDecimal minPrice,
+      BigDecimal maxPrice,
+      int page,
+      int pageSize) {
+
+<span class="fc bfc" id="L120" title="All 6 branches covered.">    if (page &lt; 0 || pageSize &lt; 1 || pageSize &gt; 100) {</span>
+<span class="fc" id="L121">      throw new IllegalArgumentException(&quot;Invalid pagination parameters&quot;);</span>
+    }
+
+<span class="pc bpc" id="L124" title="1 of 6 branches missed.">    if (startDate != null &amp;&amp; endDate != null &amp;&amp; startDate.isAfter(endDate)) {</span>
+<span class="fc" id="L125">      throw new IllegalArgumentException(&quot;startDate cannot be after endDate&quot;);</span>
+    }
+
+<span class="fc bfc" id="L128" title="All 6 branches covered.">    if ((minPrice != null &amp;&amp; minPrice.signum() &lt; 0)</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        || (maxPrice != null &amp;&amp; maxPrice.signum() &lt; 0)) {</span>
+<span class="fc" id="L130">      throw new IllegalArgumentException(&quot;Prices cannot be negative&quot;);</span>
+    }
+
+<span class="pc bpc" id="L133" title="1 of 6 branches missed.">    if (minPrice != null &amp;&amp; maxPrice != null &amp;&amp; minPrice.compareTo(maxPrice) &gt; 0) {</span>
+<span class="fc" id="L134">      throw new IllegalArgumentException(&quot;minPrice cannot exceed maxPrice&quot;);</span>
+    }
+<span class="fc" id="L136">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

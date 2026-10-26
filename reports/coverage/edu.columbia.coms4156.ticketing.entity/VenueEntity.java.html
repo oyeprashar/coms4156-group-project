@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VenueEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.entity</a> &gt; <span class="el_source">VenueEntity.java</span></div><h1>VenueEntity.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+/** Represents a venue where events are hosted. */
+@Entity
+@Table(name = &quot;venues&quot;)
+public class VenueEntity {
+
+  @Id
+  @Column(name = &quot;venue_id&quot;)
+  private String venueId;
+
+  private String name;
+
+  private String city;
+
+  /** Required by JPA. */
+<span class="fc" id="L22">  protected VenueEntity() {}</span>
+
+  /** Creates a venue with its identifier, name, and city. */
+<span class="fc" id="L25">  public VenueEntity(String venueId, String name, String city) {</span>
+<span class="fc" id="L26">    this.venueId = venueId;</span>
+<span class="fc" id="L27">    this.name = name;</span>
+<span class="fc" id="L28">    this.city = city;</span>
+<span class="fc" id="L29">  }</span>
+
+  public String getVenueId() {
+<span class="nc" id="L32">    return venueId;</span>
+  }
+
+  public String getName() {
+<span class="fc" id="L36">    return name;</span>
+  }
+
+  public String getCity() {
+<span class="fc" id="L40">    return city;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>
