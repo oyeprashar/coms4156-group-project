@@ -50,34 +50,38 @@ class ReservationServiceTest {
   private static final String RESERVATION_ID = "res_001";
   private static final String CUSTOMER_ID = "cust_001";
 
-  @Mock private EventRepository eventRepository;
-  @Mock private InventoryRepository inventoryRepository;
-  @Mock private ReservationRepository reservationRepository;
-  @Mock private TicketRepository ticketRepository;
+  @Mock
+  private EventRepository eventRepository;
+  @Mock
+  private InventoryRepository inventoryRepository;
+  @Mock
+  private ReservationRepository reservationRepository;
+  @Mock
+  private TicketRepository ticketRepository;
 
-  @Mock private EventEntity reservationEvent;
-  @Mock private InventoryEntity inventory;
+  @Mock
+  private EventEntity reservationEvent;
+  @Mock
+  private InventoryEntity inventory;
 
   private ReservationService reservationService;
   private EventEntity event;
 
   @BeforeEach
   void setUp() {
-    reservationService =
-        new ReservationService(
-            eventRepository, inventoryRepository, reservationRepository, ticketRepository);
+    reservationService = new ReservationService(
+        eventRepository, inventoryRepository, reservationRepository, ticketRepository);
 
     VenueEntity venue = new VenueEntity("venue_001", "Madison Square Garden", "New York");
-    event =
-        new EventEntity(
-            "evt_001",
-            "Coldplay Live",
-            "concert",
-            OffsetDateTime.now(ZoneOffset.UTC).plusDays(30),
-            new BigDecimal("85.00"),
-            new BigDecimal("240.00"),
-            "USD",
-            venue);
+    event = new EventEntity(
+        "evt_001",
+        "Coldplay Live",
+        "concert",
+        OffsetDateTime.now(ZoneOffset.UTC).plusDays(30),
+        new BigDecimal("85.00"),
+        new BigDecimal("240.00"),
+        "USD",
+        venue);
   }
 
   /** Configures a valid event with available inventory. */
@@ -177,9 +181,8 @@ class ReservationServiceTest {
 
     ReservationRequest request = new ReservationRequest("evt_999", 2, "cust_456");
 
-    ResponseStatusException exception =
-        assertThrows(
-            ResponseStatusException.class, () -> reservationService.reserveTickets(request));
+    ResponseStatusException exception = assertThrows(
+        ResponseStatusException.class, () -> reservationService.reserveTickets(request));
 
     assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     verifyNoInteractions(inventoryRepository, reservationRepository);
@@ -256,8 +259,8 @@ class ReservationServiceTest {
 
     OffsetDateTime before = OffsetDateTime.now(ZoneOffset.UTC);
 
-    ReservationResponse response =
-        reservationService.reserveTickets(new ReservationRequest("evt_001", 2, "cust_456"));
+    ReservationResponse response = reservationService.reserveTickets(
+        new ReservationRequest("evt_001", 2, "cust_456"));
 
     OffsetDateTime after = OffsetDateTime.now(ZoneOffset.UTC);
 
@@ -266,9 +269,11 @@ class ReservationServiceTest {
     assertTrue(response.expiresAt().isBefore(after.plusMinutes(11)));
   }
 
-  private ReservationEntity reservation(ReservationStatus status, OffsetDateTime expiresAt) {
-    ReservationEntity reservation =
-        new ReservationEntity(RESERVATION_ID, event, CUSTOMER_ID, 2, status, expiresAt);
+  private ReservationEntity reservation(
+      ReservationStatus status,
+      OffsetDateTime expiresAt) {
+    ReservationEntity reservation = new ReservationEntity(
+        RESERVATION_ID, event, CUSTOMER_ID, 2, status, expiresAt);
     when(reservationRepository.findByIdForUpdate(RESERVATION_ID))
         .thenReturn(Optional.of(reservation));
     return reservation;
@@ -285,11 +290,12 @@ class ReservationServiceTest {
   @Test
   @SuppressWarnings("unchecked")
   void confirmHeldReservationIssuesOneTicketPerSeat() {
-    when(ticketRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(ticketRepository.saveAll(anyList())).thenAnswer(
+        invocation -> invocation.getArgument(0));
     final ReservationEntity reservation = heldReservation();
 
-    ConfirmReservationResponse response =
-        reservationService.confirmReservation(RESERVATION_ID, request("key-1"));
+    ConfirmReservationResponse response = reservationService.confirmReservation(
+        RESERVATION_ID, request("key-1"));
 
     assertEquals(RESERVATION_ID, response.reservationId());
     assertEquals("evt_001", response.eventId());
@@ -317,10 +323,11 @@ class ReservationServiceTest {
   @Test
   void confirmIssuesDistinctTicketIds() {
     heldReservation();
-    when(ticketRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(ticketRepository.saveAll(anyList())).thenAnswer(
+        invocation -> invocation.getArgument(0));
 
-    ConfirmReservationResponse response =
-        reservationService.confirmReservation(RESERVATION_ID, request("key-1"));
+    ConfirmReservationResponse response = reservationService.confirmReservation(
+        RESERVATION_ID, request("key-1"));
 
     assertEquals(2, response.tickets().stream().map(IssuedTicket::ticketId).distinct().count());
   }
@@ -329,10 +336,9 @@ class ReservationServiceTest {
   void confirmMissingReservationIsRejected() {
     when(reservationRepository.findByIdForUpdate(RESERVATION_ID)).thenReturn(Optional.empty());
 
-    ReservationConfirmationException exception =
-        assertThrows(
-            ReservationConfirmationException.class,
-            () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
+    ReservationConfirmationException exception = assertThrows(
+        ReservationConfirmationException.class,
+        () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
 
     assertEquals(ConfirmationError.RESERVATION_NOT_FOUND, exception.getError());
     assertEquals(RESERVATION_ID, exception.getReservationId());
@@ -342,12 +348,10 @@ class ReservationServiceTest {
   void confirmByAnotherCustomerIsRejected() {
     ReservationEntity reservation = heldReservation();
 
-    ReservationConfirmationException exception =
-        assertThrows(
-            ReservationConfirmationException.class,
-            () ->
-                reservationService.confirmReservation(
-                    RESERVATION_ID, new ConfirmReservationRequest("cust_999", "PAY_123", "k")));
+    ReservationConfirmationException exception = assertThrows(
+        ReservationConfirmationException.class,
+        () -> reservationService.confirmReservation(
+            RESERVATION_ID, new ConfirmReservationRequest("cust_999", "PAY_123", "k")));
 
     assertEquals(ConfirmationError.RESERVATION_NOT_OWNED, exception.getError());
     assertEquals(ReservationStatus.HELD, reservation.getStatus());
@@ -356,13 +360,12 @@ class ReservationServiceTest {
 
   @Test
   void confirmExpiredHoldMarksExpiredAndReleasesInventory() {
-    ReservationEntity reservation =
-        reservation(ReservationStatus.HELD, OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1));
+    ReservationEntity reservation = reservation(ReservationStatus.HELD,
+        OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1));
 
-    ReservationConfirmationException exception =
-        assertThrows(
-            ReservationConfirmationException.class,
-            () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
+    ReservationConfirmationException exception = assertThrows(
+        ReservationConfirmationException.class,
+        () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
 
     assertEquals(ConfirmationError.RESERVATION_EXPIRED, exception.getError());
     assertEquals(ReservationStatus.EXPIRED, reservation.getStatus());
@@ -375,10 +378,9 @@ class ReservationServiceTest {
   void confirmAlreadyExpiredReservationDoesNotReleaseAgain() {
     reservation(ReservationStatus.EXPIRED, OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1));
 
-    ReservationConfirmationException exception =
-        assertThrows(
-            ReservationConfirmationException.class,
-            () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
+    ReservationConfirmationException exception = assertThrows(
+        ReservationConfirmationException.class,
+        () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
 
     assertEquals(ConfirmationError.RESERVATION_EXPIRED, exception.getError());
     verify(inventoryRepository, never()).releaseTickets(anyString(), anyInt());
@@ -388,10 +390,9 @@ class ReservationServiceTest {
   void confirmCancelledReservationIsRejected() {
     reservation(ReservationStatus.CANCELLED, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(10));
 
-    ReservationConfirmationException exception =
-        assertThrows(
-            ReservationConfirmationException.class,
-            () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
+    ReservationConfirmationException exception = assertThrows(
+        ReservationConfirmationException.class,
+        () -> reservationService.confirmReservation(RESERVATION_ID, request("key-1")));
 
     assertEquals(ConfirmationError.RESERVATION_CANCELLED, exception.getError());
     verify(inventoryRepository, never()).releaseTickets(anyString(), anyInt());
@@ -399,20 +400,30 @@ class ReservationServiceTest {
 
   @Test
   void retryWithSameIdempotencyKeyReturnsOriginalTickets() {
-    ReservationEntity reservation =
-        reservation(ReservationStatus.CONFIRMED, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(5));
+    ReservationEntity reservation = reservation(ReservationStatus.CONFIRMED,
+        OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(5));
     OffsetDateTime confirmedAt = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1);
     reservation.confirm("PAY_123", "key-1", confirmedAt);
 
-    List<TicketEntity> existing =
-        List.of(
-            new TicketEntity("tkt_a", event, reservation, TicketStatus.ISSUED, confirmedAt),
-            new TicketEntity("tkt_b", event, reservation, TicketStatus.ISSUED, confirmedAt));
-    when(ticketRepository.findByReservationReservationIdOrderByTicketId(RESERVATION_ID))
+    List<TicketEntity> existing = List.of(
+        new TicketEntity(
+            "tkt_a",
+            event,
+            reservation,
+            TicketStatus.ISSUED,
+            confirmedAt),
+        new TicketEntity(
+            "tkt_b",
+            event,
+            reservation,
+            TicketStatus.ISSUED,
+            confirmedAt));
+    when(ticketRepository.findByReservationReservationIdOrderByTicketId(
+        RESERVATION_ID))
         .thenReturn(existing);
 
-    ConfirmReservationResponse response =
-        reservationService.confirmReservation(RESERVATION_ID, request("key-1"));
+    ConfirmReservationResponse response = reservationService.confirmReservation(
+        RESERVATION_ID, request("key-1"));
 
     assertEquals(List.of(new IssuedTicket("tkt_a"), new IssuedTicket("tkt_b")), response.tickets());
     assertEquals(confirmedAt, response.confirmedAt());
@@ -421,14 +432,13 @@ class ReservationServiceTest {
 
   @Test
   void confirmWithDifferentKeyAfterConfirmationIsRejected() {
-    ReservationEntity reservation =
-        reservation(ReservationStatus.CONFIRMED, OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(5));
+    ReservationEntity reservation = reservation(ReservationStatus.CONFIRMED,
+        OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(5));
     reservation.confirm("PAY_123", "key-1", OffsetDateTime.now(ZoneOffset.UTC));
 
-    ReservationConfirmationException exception =
-        assertThrows(
-            ReservationConfirmationException.class,
-            () -> reservationService.confirmReservation(RESERVATION_ID, request("key-2")));
+    ReservationConfirmationException exception = assertThrows(
+        ReservationConfirmationException.class,
+        () -> reservationService.confirmReservation(RESERVATION_ID, request("key-2")));
 
     assertEquals(ConfirmationError.ALREADY_CONFIRMED, exception.getError());
     verify(ticketRepository, never()).saveAll(anyList());
@@ -441,19 +451,16 @@ class ReservationServiceTest {
         () -> reservationService.confirmReservation(RESERVATION_ID, null));
     assertThrows(
         IllegalArgumentException.class,
-        () ->
-            reservationService.confirmReservation(
-                RESERVATION_ID, new ConfirmReservationRequest(" ", "PAY_123", "key-1")));
+        () -> reservationService.confirmReservation(
+            RESERVATION_ID, new ConfirmReservationRequest(" ", "PAY_123", "key-1")));
     assertThrows(
         IllegalArgumentException.class,
-        () ->
-            reservationService.confirmReservation(
-                RESERVATION_ID, new ConfirmReservationRequest(CUSTOMER_ID, null, "key-1")));
+        () -> reservationService.confirmReservation(
+            RESERVATION_ID, new ConfirmReservationRequest(CUSTOMER_ID, null, "key-1")));
     assertThrows(
         IllegalArgumentException.class,
-        () ->
-            reservationService.confirmReservation(
-                RESERVATION_ID, new ConfirmReservationRequest(CUSTOMER_ID, "PAY_123", "")));
+        () -> reservationService.confirmReservation(
+            RESERVATION_ID, new ConfirmReservationRequest(CUSTOMER_ID, "PAY_123", "")));
 
     verify(reservationRepository, never()).findByIdForUpdate(any());
   }

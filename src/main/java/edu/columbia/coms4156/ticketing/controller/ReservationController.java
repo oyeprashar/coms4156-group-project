@@ -1,9 +1,12 @@
 package edu.columbia.coms4156.ticketing.controller;
 
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationResponse;
 import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationRequest;
 import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationResponse;
 import edu.columbia.coms4156.ticketing.pojo.ReservationRequest;
 import edu.columbia.coms4156.ticketing.pojo.ReservationResponse;
+import edu.columbia.coms4156.ticketing.service.ReservationCancellationException;
 import edu.columbia.coms4156.ticketing.service.ReservationConfirmationException;
 import edu.columbia.coms4156.ticketing.service.ReservationService;
 import java.util.Map;
@@ -44,8 +47,31 @@ public class ReservationController {
   @PostMapping("/{reservationId}/confirm")
   public ConfirmReservationResponse confirmReservation(
       @PathVariable String reservationId, @RequestBody ConfirmReservationRequest request) {
-
     return reservationService.confirmReservation(reservationId, request);
+  }
+
+  /** Cancels a held reservation and releases its tickets back into inventory. */
+  @PostMapping("/{reservationId}/cancel")
+  public CancelReservationResponse cancelReservation(
+      @PathVariable String reservationId, @RequestBody CancelReservationRequest request) {
+    return reservationService.cancelReservation(reservationId, request);
+  }
+
+  /** Maps rejected cancellations to an HTTP status and error code. */
+  @ExceptionHandler(ReservationCancellationException.class)
+  public ResponseEntity<Map<String, String>> handleCancellationError(
+      ReservationCancellationException exception) {
+    HttpStatus status = switch (exception.getError()) {
+      case RESERVATION_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case RESERVATION_NOT_OWNED -> HttpStatus.FORBIDDEN;
+      case RESERVATION_ALREADY_CONFIRMED -> HttpStatus.CONFLICT;
+    };
+
+    return ResponseEntity.status(status)
+        .body(
+            Map.of(
+                "error", exception.getError().name(),
+                "reservationId", exception.getReservationId()));
   }
 
   /** Maps rejected confirmations to an HTTP status and error code. */
@@ -53,12 +79,11 @@ public class ReservationController {
   public ResponseEntity<Map<String, String>> handleConfirmationError(
       ReservationConfirmationException exception) {
 
-    HttpStatus status =
-        switch (exception.getError()) {
-          case RESERVATION_NOT_FOUND -> HttpStatus.NOT_FOUND;
-          case RESERVATION_NOT_OWNED -> HttpStatus.FORBIDDEN;
-          case RESERVATION_EXPIRED, RESERVATION_CANCELLED, ALREADY_CONFIRMED -> HttpStatus.CONFLICT;
-        };
+    HttpStatus status = switch (exception.getError()) {
+      case RESERVATION_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case RESERVATION_NOT_OWNED -> HttpStatus.FORBIDDEN;
+      case RESERVATION_EXPIRED, RESERVATION_CANCELLED, ALREADY_CONFIRMED -> HttpStatus.CONFLICT;
+    };
 
     return ResponseEntity.status(status)
         .body(
