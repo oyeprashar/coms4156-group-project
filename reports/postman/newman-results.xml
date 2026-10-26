@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Ticketing Service" tests="11" time="0.238">
-  <testsuite name="Events / Search all upcoming events" id="1fbb3681-4ac0-4afe-bade-cc08286ee261" timestamp="2026-10-26T17:07:35.295Z" tests="2" failures="0" errors="0" time="0.046">
-    <testcase name="returns 200" time="0.046" classname="EventsSearchAllUpcomingEvents"/>
-    <testcase name="has events and count" time="0.046" classname="EventsSearchAllUpcomingEvents"/>
+<testsuites name="Ticketing Service" tests="11" time="0.180">
+  <testsuite name="Events / Search all upcoming events" id="8d799fd3-d9b7-4ee1-8457-aadbbcb4df13" timestamp="2026-10-26T18:10:21.771Z" tests="2" failures="0" errors="0" time="0.030">
+    <testcase name="returns 200" time="0.030" classname="EventsSearchAllUpcomingEvents"/>
+    <testcase name="has events and count" time="0.030" classname="EventsSearchAllUpcomingEvents"/>
   </testsuite>
-  <testsuite name="Events / Search with filters" id="1d8c961e-05b4-44ba-b96c-cfd64e5435c8" timestamp="2026-10-26T17:07:35.295Z" tests="1" failures="0" errors="0" time="0.025">
-    <testcase name="returns 200" time="0.025" classname="EventsSearchWithFilters"/>
+  <testsuite name="Events / Search with filters" id="c4ccc14a-a131-423a-9c4f-77a3ebedc5f3" timestamp="2026-10-26T18:10:21.771Z" tests="1" failures="0" errors="0" time="0.017">
+    <testcase name="returns 200" time="0.017" classname="EventsSearchWithFilters"/>
   </testsuite>
-  <testsuite name="Events / Invalid price range returns 400" id="12523a71-5021-4db6-bb3a-7dd797cfef59" timestamp="2026-10-26T17:07:35.295Z" tests="1" failures="0" errors="0" time="0.007">
-    <testcase name="returns 400" time="0.007" classname="EventsInvalidPriceRangeReturns400"/>
+  <testsuite name="Events / Invalid price range returns 400" id="85496949-270c-4d5b-b1c8-6c897f053787" timestamp="2026-10-26T18:10:21.771Z" tests="1" failures="0" errors="0" time="0.005">
+    <testcase name="returns 400" time="0.005" classname="EventsInvalidPriceRangeReturns400"/>
   </testsuite>
-  <testsuite name="Reservations / Reserve tickets" id="89719362-5478-47c3-a039-e50e3d255050" timestamp="2026-10-26T17:07:35.295Z" tests="2" failures="0" errors="0" time="0.066">
-    <testcase name="returns 201" time="0.066" classname="ReservationsReserveTickets"/>
-    <testcase name="reservation is held" time="0.066" classname="ReservationsReserveTickets"/>
+  <testsuite name="Reservations / Reserve tickets" id="598d87cf-f1fa-46b4-a681-12512e235368" timestamp="2026-10-26T18:10:21.771Z" tests="2" failures="0" errors="0" time="0.051">
+    <testcase name="returns 201" time="0.051" classname="ReservationsReserveTickets"/>
+    <testcase name="reservation is held" time="0.051" classname="ReservationsReserveTickets"/>
   </testsuite>
-  <testsuite name="Reservations / Confirm reservation" id="5ab4cc57-6931-4800-a76f-8446dd1d05ba" timestamp="2026-10-26T17:07:35.295Z" tests="2" failures="0" errors="0" time="0.016">
-    <testcase name="returns 200" time="0.016" classname="ReservationsConfirmReservation"/>
-    <testcase name="issues one ticket per seat" time="0.016" classname="ReservationsConfirmReservation"/>
+  <testsuite name="Reservations / Confirm reservation" id="c8748799-472e-470f-9417-b761943a4d43" timestamp="2026-10-26T18:10:21.771Z" tests="2" failures="0" errors="0" time="0.017">
+    <testcase name="returns 200" time="0.017" classname="ReservationsConfirmReservation"/>
+    <testcase name="issues one ticket per seat" time="0.017" classname="ReservationsConfirmReservation"/>
   </testsuite>
-  <testsuite name="Reservations / Retry confirm with same key returns same tickets" id="c73110dc-22d8-4728-aa1f-8fa7542bbb90" timestamp="2026-10-26T17:07:35.295Z" tests="1" failures="0" errors="0" time="0.027">
-    <testcase name="returns 200" time="0.027" classname="ReservationsRetryConfirmWithSameKeyReturnsSameTickets"/>
+  <testsuite name="Reservations / Retry confirm with same key returns same tickets" id="5152b1e7-05c3-42d6-adb7-e6eea0957212" timestamp="2026-10-26T18:10:21.771Z" tests="1" failures="0" errors="0" time="0.017">
+    <testcase name="returns 200" time="0.017" classname="ReservationsRetryConfirmWithSameKeyReturnsSameTickets"/>
   </testsuite>
-  <testsuite name="Reservations / Cancel confirmed reservation returns 409" id="4be91aa8-ce13-488d-8ca4-ffd9478f856d" timestamp="2026-10-26T17:07:35.295Z" tests="2" failures="0" errors="0" time="0.009">
-    <testcase name="returns 409" time="0.009" classname="ReservationsCancelConfirmedReservationReturns409"/>
-    <testcase name="error is RESERVATION_ALREADY_CONFIRMED" time="0.009" classname="ReservationsCancelConfirmedReservationReturns409"/>
+  <testsuite name="Reservations / Cancel confirmed reservation returns 409" id="d79a5b97-c4bc-4e2d-9394-771dee68dde6" timestamp="2026-10-26T18:10:21.771Z" tests="2" failures="0" errors="0" time="0.007">
+    <testcase name="returns 409" time="0.007" classname="ReservationsCancelConfirmedReservationReturns409"/>
+    <testcase name="error is RESERVATION_ALREADY_CONFIRMED" time="0.007" classname="ReservationsCancelConfirmedReservationReturns409"/>
   </testsuite>
-  <testsuite name="Reservations / Reserve then cancel" id="efa1f59c-9798-4738-9689-67ed1c7d4dd1" timestamp="2026-10-26T17:07:35.295Z" tests="1" failures="0" errors="0" time="0.011">
-    <testcase name="returns 201" time="0.011" classname="ReservationsReserveThenCancel"/>
+  <testsuite name="Reservations / Reserve then cancel" id="e0e97421-c359-4147-aae6-63f197a09738" timestamp="2026-10-26T18:10:21.771Z" tests="1" failures="0" errors="0" time="0.010">
+    <testcase name="returns 201" time="0.010" classname="ReservationsReserveThenCancel"/>
   </testsuite>
-  <testsuite name="Reservations / Cancel held reservation" id="5d57f152-3b45-4a3e-8a07-d26d6181b682" timestamp="2026-10-26T17:07:35.295Z" tests="2" failures="0" errors="0" time="0.019">
-    <testcase name="returns 200" time="0.019" classname="ReservationsCancelHeldReservation"/>
-    <testcase name="reservation is cancelled" time="0.019" classname="ReservationsCancelHeldReservation"/>
+  <testsuite name="Reservations / Cancel held reservation" id="d6d3f1b2-3e3e-4649-8554-ef4c4cee71b6" timestamp="2026-10-26T18:10:21.771Z" tests="2" failures="0" errors="0" time="0.015">
+    <testcase name="returns 200" time="0.015" classname="ReservationsCancelHeldReservation"/>
+    <testcase name="reservation is cancelled" time="0.015" classname="ReservationsCancelHeldReservation"/>
   </testsuite>
-  <testsuite name="Reservations / Overbooking returns 409" id="60b1c260-a57a-4e78-bb52-35c2cb80e775" timestamp="2026-10-26T17:07:35.295Z" tests="2" failures="0" errors="0" time="0.006">
+  <testsuite name="Reservations / Overbooking returns 409" id="8fbba965-7a7b-47c2-ac5a-48f664bd8d62" timestamp="2026-10-26T18:10:21.771Z" tests="2" failures="0" errors="0" time="0.006">
     <testcase name="returns 409" time="0.006" classname="ReservationsOverbookingReturns409"/>
     <testcase name="error is INSUFFICIENT_AVAILABILITY" time="0.006" classname="ReservationsOverbookingReturns409"/>
   </testsuite>
-  <testsuite name="Reservations / Unknown reservation returns 404" id="cfb70318-a5b7-4243-b057-4e2ac5ee7b16" timestamp="2026-10-26T17:07:35.295Z" tests="1" failures="0" errors="0" time="0.006">
-    <testcase name="returns 404" time="0.006" classname="ReservationsUnknownReservationReturns404"/>
+  <testsuite name="Reservations / Unknown reservation returns 404" id="a1e3ab97-0653-481b-812a-c5478e0f744a" timestamp="2026-10-26T18:10:21.771Z" tests="1" failures="0" errors="0" time="0.005">
+    <testcase name="returns 404" time="0.005" classname="ReservationsUnknownReservationReturns404"/>
   </testsuite>
 </testsuites>

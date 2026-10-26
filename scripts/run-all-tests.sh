@@ -24,6 +24,7 @@ SEED_FILE="$ROOT_DIR/src/main/resources/db/seed.sql"
 APP_PORT=8080
 APP_LOG="$ROOT_DIR/build/app-under-test.log"
 NEWMAN_VERSION=6
+NEWMAN_REPORT="$REPORTS_DIR/postman/newman-results.xml"
 
 skip_live=false
 for arg in "$@"; do
@@ -38,6 +39,7 @@ cd "$ROOT_DIR" || exit 1
 
 gradle_status="NOT RUN"
 live_status="SKIPPED"
+live_failure_reason=""
 app_pid=""
 started_postgres=false
 
@@ -65,24 +67,38 @@ else
 fi
 
 # Stage 2: the Postman collection against the real service and PostgreSQL.
+live_failure() {
+  live_failure_reason="$*"
+  echo "$live_failure_reason" >&2
+  return 1
+}
+
 run_live_tests() {
-  if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
-    echo "Docker is not installed or not running. Start Docker, or use --skip-live." >&2
+  if ! command -v docker >/dev/null 2>&1; then
+    live_failure "Docker CLI was not found. Install Docker Desktop and reopen your terminal, or use --skip-live."
+    return 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    live_failure "Docker is not running or is inaccessible. Start Docker Desktop and check 'docker info', or use --skip-live."
+    return 1
+  fi
+  if ! docker compose version >/dev/null 2>&1; then
+    live_failure "Docker Compose is unavailable. Install the Compose plugin (included with Docker Desktop), or use --skip-live."
     return 1
   fi
   if ! command -v npx >/dev/null 2>&1; then
-    echo "npx was not found. Install Node.js, or use --skip-live." >&2
+    live_failure "npx was not found. Install Node.js, or use --skip-live."
     return 1
   fi
   if curl -s -o /dev/null "http://localhost:$APP_PORT"; then
-    echo "Port $APP_PORT is already in use. Stop the other server and retry." >&2
+    live_failure "Port $APP_PORT is already in use. Stop the other server and retry."
     return 1
   fi
 
   local jar
   jar="$(find build/libs -name '*.jar' ! -name '*-plain.jar' 2>/dev/null | head -n 1)"
   if [[ -z "$jar" ]]; then
-    echo "No executable JAR in build/libs; stage 1 must build it first." >&2
+    live_failure "No executable JAR in build/libs; stage 1 must build it first."
     return 1
   fi
 
@@ -90,7 +106,10 @@ run_live_tests() {
     started_postgres=true
   fi
   echo "Starting PostgreSQL..."
-  docker compose up -d --wait postgres || return 1
+  docker compose up -d --wait postgres || {
+    live_failure "PostgreSQL could not start. See the Docker Compose output above."
+    return 1
+  }
 
   # The service creates the tables on startup, so seed only after it is up.
   echo "Starting the service (log: build/app-under-test.log)..."
@@ -100,7 +119,7 @@ run_live_tests() {
   local waited=0
   until curl -s -o /dev/null "http://localhost:$APP_PORT/v1/events"; do
     if ! kill -0 "$app_pid" 2>/dev/null || ((waited >= 90)); then
-      echo "The service did not start; see build/app-under-test.log." >&2
+      live_failure "The service did not start; see build/app-under-test.log."
       return 1
     fi
     sleep 1
@@ -109,15 +128,23 @@ run_live_tests() {
 
   echo "Loading seed data..."
   docker compose exec -T postgres psql -q -U ticketing -d ticketing \
-    -v ON_ERROR_STOP=1 <"$SEED_FILE" || return 1
+    -v ON_ERROR_STOP=1 <"$SEED_FILE" || {
+    live_failure "Loading PostgreSQL seed data failed. See the database output above."
+    return 1
+  }
 
   mkdir -p "$REPORTS_DIR/postman"
-  npx --yes "newman@$NEWMAN_VERSION" run "$COLLECTION" \
+  if npx --yes "newman@$NEWMAN_VERSION" run "$COLLECTION" \
     --env-var "baseUrl=http://localhost:$APP_PORT" \
     --reporters cli,junit \
-    --reporter-junit-export "$REPORTS_DIR/postman/newman-results.xml"
+    --reporter-junit-export "$NEWMAN_REPORT"; then
+    return 0
+  fi
+  live_failure "Newman failed. See its output above for installation, connection, or assertion errors."
 }
 
+# An earlier successful run must not appear as this run's live-test results.
+rm -f "$NEWMAN_REPORT"
 if [[ "$skip_live" == false ]]; then
   log "Stage 2: Postman collection against the running service"
   if run_live_tests; then
@@ -179,8 +206,13 @@ junit_totals() {
   echo "  Line coverage:   $(coverage LINE)"
   echo "  Branch coverage: $(coverage BRANCH)"
   echo "Postman collection (live service + PostgreSQL): $live_status"
-  if [[ -f "$REPORTS_DIR/postman/newman-results.xml" && "$live_status" != SKIPPED ]]; then
-    echo "  Newman results:  $(junit_totals "$REPORTS_DIR/postman/newman-results.xml")"
+  if [[ -n "$live_failure_reason" ]]; then
+    echo "  Reason:          $live_failure_reason"
+  fi
+  if [[ -f "$NEWMAN_REPORT" && "$live_status" != SKIPPED ]]; then
+    echo "  Newman results:  $(junit_totals "$NEWMAN_REPORT")"
+  elif [[ "$live_status" == FAILED ]]; then
+    echo "  Newman results:  NOT RUN / no report generated in this run"
   fi
   echo
   echo "Reports:"

@@ -89,6 +89,26 @@ in your Java formatter. The checked-in `.editorconfig` sets two-space Java
 indentation and a 100-column line limit; Gradle Checkstyle is the style check used
 by the build.
 
+VS Code uses the shared [.vscode/settings.json](.vscode/settings.json) with the
+Red Hat Java extension. It formats Java on save and organizes imports into static
+imports first, then one alphabetically sorted group of ordinary imports, matching
+Checkstyle. Java Auto Save runs when focus leaves the editor, so formatting and
+import organization run together. The Java settings override a global formatter
+such as Prettier for this project.
+
+The local [Eclipse formatter profile](config/formatter/eclipse-java-google-style.xml)
+is adapted from Google's
+[last published profile](https://github.com/google/styleguide/blob/eaa0a05ec282e893ba314f1e6aeb9ef9f6674249/eclipse-java-google-style.xml).
+It uses two-space indentation, 100-column wrapping, and the project's blank-line
+rules. The profile is stored in the repository so formatting works offline and
+does not change when an upstream URL changes. Eclipse users can import the same
+profile. Checkstyle also checks naming and documentation rules that a formatter
+cannot fix automatically.
+
+After pulling these settings, run **Developer: Reload Window** in VS Code, then
+**Format Document** and save any files formatted with the old settings. Verify
+with `./gradlew checkstyleMain checkstyleTest`.
+
 ## Stack
 
 | Tool | Version / purpose |
@@ -754,3 +774,68 @@ Error bodies for domain errors include the reservation ID:
 - **Database tables:** `reservations` (updates status to `CANCELLED`), `inventory` (increases `available_tickets` by the released quantity)
 - **Reservation states:** Transitions from `HELD` to `CANCELLED`.
 - **Inventory:** Returns tickets to inventory using an atomic update so availability counts stay consistent under concurrent traffic.
+
+
+## AI Usage
+This project uses AI tools to assist with code generation, documentation, and testing. The team has reviewed and validated all AI-generated content to ensure accuracy, security, and compliance with project requirements.
+
+### Tools Used
+- **Aditya Unnikrishnan:** ChatGPT Codex for code generation and documentation assistance.
+   Model used: GPT-6 Astra \
+   01a13cf6-ea07-77a3-8cf0-395c9d26c937 (Project setup)
+   Context: 31% left (178,327 used / 258K)
+
+   01a17933-fd53-7cf1-a373-fd493e531d29 (Test compliance and documentation coverage)
+   Context: 38% left (159,537 used / 258K)
+
+   Codex acquired through free student offer from OpenAI.
+
+- **Jun Hong:** Claude Sonnet 5.5 for code generation and documentation assistance.
+
+  Cumulative Tokens: ~700k (every back and forth, resending context)
+
+  Unique Content Tokens: ~105k (counting all messages just once without re-reading context)
+
+  Used Claude to generate an outline of Operation 5, and then I reviewed and revised it.
+  After I started coding following the outline, I asked Claude for assistance if I was stuck
+  and also to double check my work. Claude generated the unit tests after I reviewed their plan.
+  Lastly, Claude also generated my part of the README after I input all the necessary information.
+
+- **Madhav Rajkondawar:** Claude Code for testing/tooling, setup, and the master test script.
+   Model used: Claude Opus 5.5 \
+   4bbebf75-926e-4ce0-a5bb-dc0f22b7fbe6 (Testing tools, API tests, and master test script)
+   Context: 85% left (154,500 used / 1M)
+
+   I leveraged Claude to add the general tools from the proposal as well as the associated files
+   needed to take care of the testing. I also added the test script which checks all the flows and
+   API testing then added to the README document for all my changes. I used Claude's assistance on
+   these and reviewed the changes after they were made as well as added to them where needed.
+   Claude Pro Subscription has been utilized to achieve this.
+
+- **Shubham Prashar:** ChatGPT and Cursor for implementation planning, code review, unit testing, and documentation assistance.
+
+  Cumulative Tokens: ~450k
+
+  Unique Content Tokens: ~70k
+
+  Used AI to plan and break down Operation 1 (Event Search) into smaller implementation tasks.
+  I reviewed the suggested approach before implementing the controller and service logic.
+  I also used AI to troubleshoot issues, review code quality, and identify potential edge cases.
+  Finally, I used AI to assist with unit tests, Checkstyle fixes, and documentation, reviewing the
+  generated output for correctness.
+
+- **Amelie Dequito:** ChatGPT (GPT-6) for implementation planning, code generation, debugging, unit testing, and documentation assistance.
+  
+  Used ChatGPT to help implement Operation 2 (Reserve Tickets API), including controlled endpoints, reservation logic, and exception handling.
+  Also used AI to fix compilation errors, resolve merge conflicts, and develop unit tests.
+  Reviewed and adjusted generated code and verified functionality through Gradle tests.
+  
+  Access: ChatGPT subscription.
+
+  
+- **Tyra Minnal Vinay:** Claude for implementation outline planning, debugging, unit testing, and documentation assistance.
+
+   Context Tokens: ~220k used of 1M
+  
+  Used Claude to help plan how to implement Operation 3 from our proposal, then reviewed approach and coordinated reservation table logic with      Amelie. Also used AI to fix compilation errors, debug a CI failure and assist with unit tests.
+  Reviewed changes before generating a Pull request. 
