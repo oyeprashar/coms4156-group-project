@@ -791,9 +791,9 @@ This project uses AI tools to assist with code generation, documentation, and te
    Codex acquired through free student offer from OpenAI.
 
 - **Jun Hong:** Claude Sonnet 5.5 for code generation and documentation assistance.
-   
+
   Cumulative Tokens: ~700k (every back and forth, resending context)
-  
+
   Unique Content Tokens: ~105k (counting all messages just once without re-reading context)
 
   Used Claude to generate an outline of Operation 5, and then I reviewed and revised it.
@@ -806,8 +806,20 @@ This project uses AI tools to assist with code generation, documentation, and te
    4bbebf75-926e-4ce0-a5bb-dc0f22b7fbe6 (Testing tools, API tests, and master test script)
    Context: 85% left (154,500 used / 1M)
 
-   I leveraged Claude to add the general tools from the proposal as well as the associated files 
-   needed to take care of the testing. I also added the test script which checks all the flows and 
+   I leveraged Claude to add the general tools from the proposal as well as the associated files
+   needed to take care of the testing. I also added the test script which checks all the flows and
    API testing then added to the README document for all my changes. I used Claude's assistance on
-   these and reviewed the changes after they were made as well as added to them where needed. 
+   these and reviewed the changes after they were made as well as added to them where needed.
    Claude Pro Subscription has been utilized to achieve this.
+
+- **Shubham Prashar:** ChatGPT and Cursor for implementation planning, code review, unit testing, and documentation assistance.
+
+  Cumulative Tokens: ~450k
+
+  Unique Content Tokens: ~70k
+
+  Used AI to plan and break down Operation 1 (Event Search) into smaller implementation tasks.
+  I reviewed the suggested approach before implementing the controller and service logic.
+  I also used AI to troubleshoot issues, review code quality, and identify potential edge cases.
+  Finally, I used AI to assist with unit tests, Checkstyle fixes, and documentation, reviewing the
+  generated output for correctness.
