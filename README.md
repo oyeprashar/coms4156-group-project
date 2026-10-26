@@ -832,3 +832,10 @@ This project uses AI tools to assist with code generation, documentation, and te
   
   Access: ChatGPT subscription.
 
+  
+- **Tyra Minnal Vinay:** Claude for implementation outline planning, debugging, unit testing, and documentation assistance.
+
+   Context Tokens: ~220k used of 1M
+  
+  Used Claude to help plan how to implement Operation 3 from our proposal, then reviewed approach and coordinated reservation table logic with      Amelie. Also used AI to fix compilation errors, debug a CI failure and assist with unit tests.
+  Reviewed changes before generating a Pull request. 
