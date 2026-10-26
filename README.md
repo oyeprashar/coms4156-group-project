@@ -823,3 +823,12 @@ This project uses AI tools to assist with code generation, documentation, and te
   I also used AI to troubleshoot issues, review code quality, and identify potential edge cases.
   Finally, I used AI to assist with unit tests, Checkstyle fixes, and documentation, reviewing the
   generated output for correctness.
+
+- **Amelie Dequito:** ChatGPT (GPT-6) for implementation planning, code generation, debugging, unit testing, and documentation assistance.
+  
+  Used ChatGPT to help implement Operation 2 (Reserve Tickets API), including controlled endpoints, reservation logic, and exception handling.
+  Also used AI to fix compilation errors, resolve merge conflicts, and develop unit tests.
+  Reviewed and adjusted generated code and verified functionality through Gradle tests.
+  
+  Access: ChatGPT subscription.
+
