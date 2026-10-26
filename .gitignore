@@ -21,7 +21,10 @@ bin/
 .classpath
 .project
 .settings/
-.vscode/
+# Share Java formatting settings; keep other editor files local.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # Local configuration
 .env
@@ -44,3 +47,6 @@ Desktop.ini
 *~
 *.swp
 *.swo
+
+
+AGENTS.md

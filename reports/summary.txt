@@ -1,6 +1,6 @@
 Ticketing service test summary
-Generated: 2026-10-26T17:07:35Z
-Commit:    622f033
+Generated: 2026-10-26T18:10:22Z
+Commit:    e97b1bb
 
 Gradle checks (unit + REST Assured API tests, coverage, Checkstyle, SpotBugs): PASSED
   JUnit results:   55 tests, 0 failures, 0 errors

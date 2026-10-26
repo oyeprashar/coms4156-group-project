@@ -1,3 +1,5 @@
+/* AI Generated */
+
 package edu.columbia.coms4156.ticketing;
 
 import org.springframework.boot.SpringApplication;

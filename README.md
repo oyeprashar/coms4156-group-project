@@ -89,6 +89,26 @@ in your Java formatter. The checked-in `.editorconfig` sets two-space Java
 indentation and a 100-column line limit; Gradle Checkstyle is the style check used
 by the build.
 
+VS Code uses the shared [.vscode/settings.json](.vscode/settings.json) with the
+Red Hat Java extension. It formats Java on save and organizes imports into static
+imports first, then one alphabetically sorted group of ordinary imports, matching
+Checkstyle. Java Auto Save runs when focus leaves the editor, so formatting and
+import organization run together. The Java settings override a global formatter
+such as Prettier for this project.
+
+The local [Eclipse formatter profile](config/formatter/eclipse-java-google-style.xml)
+is adapted from Google's
+[last published profile](https://github.com/google/styleguide/blob/eaa0a05ec282e893ba314f1e6aeb9ef9f6674249/eclipse-java-google-style.xml).
+It uses two-space indentation, 100-column wrapping, and the project's blank-line
+rules. The profile is stored in the repository so formatting works offline and
+does not change when an upstream URL changes. Eclipse users can import the same
+profile. Checkstyle also checks naming and documentation rules that a formatter
+cannot fix automatically.
+
+After pulling these settings, run **Developer: Reload Window** in VS Code, then
+**Format Document** and save any files formatted with the old settings. Verify
+with `./gradlew checkstyleMain checkstyleTest`.
+
 ## Stack
 
 | Tool | Version / purpose |
@@ -754,3 +774,18 @@ Error bodies for domain errors include the reservation ID:
 - **Database tables:** `reservations` (updates status to `CANCELLED`), `inventory` (increases `available_tickets` by the released quantity)
 - **Reservation states:** Transitions from `HELD` to `CANCELLED`.
 - **Inventory:** Returns tickets to inventory using an atomic update so availability counts stay consistent under concurrent traffic.
+
+
+## AI Usage
+This project uses AI tools to assist with code generation, documentation, and testing. The team has reviewed and validated all AI-generated content to ensure accuracy, security, and compliance with project requirements.
+
+### Tools Used
+- **Aditya Unnikrishnan:** ChatGPT Codex for code generation and documentation assistance.
+   Model used: GPT-6 Astra \
+   01a13cf6-ea07-77a3-8cf0-395c9d26c937 (Project setup)
+   Context: 31% left (178,327 used / 258K)
+
+   01a17933-fd53-7cf1-a373-fd493e531d29 (Test compliance and documentation coverage)
+   Context: 38% left (159,537 used / 258K)
+
+   Codex acquired through free student offer from OpenAI.
