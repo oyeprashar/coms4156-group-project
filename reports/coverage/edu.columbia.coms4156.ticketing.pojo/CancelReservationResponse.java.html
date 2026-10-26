@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CancelReservationResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.pojo</a> &gt; <span class="el_source">CancelReservationResponse.java</span></div><h1>CancelReservationResponse.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.pojo;
+
+/**
+ * Response body for a cancelled reservation.
+ *
+ * @param reservationId    the cancelled reservation's ID
+ * @param eventId          the event the reservation was for
+ * @param status           updated reservation status
+ * @param releasedTickets  number of tickets returned to inventory
+ * @param availableTickets updated available ticket count for the event
+ */
+<span class="fc" id="L12">public record CancelReservationResponse(</span>
+    String reservationId,
+    String eventId,
+    String status,
+    int releasedTickets,
+    int availableTickets) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

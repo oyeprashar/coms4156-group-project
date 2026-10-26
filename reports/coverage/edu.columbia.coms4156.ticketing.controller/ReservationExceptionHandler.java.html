@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.controller</a> &gt; <span class="el_source">ReservationExceptionHandler.java</span></div><h1>ReservationExceptionHandler.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.controller;
+
+import edu.columbia.coms4156.ticketing.service.InsufficientAvailabilityException;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/** Handles errors raised by the reservation API. */
+@RestControllerAdvice(assignableTypes = ReservationController.class)
+<span class="fc" id="L12">public class ReservationExceptionHandler {</span>
+
+  /** Returns a conflict response when too few tickets are available. */
+  @ExceptionHandler(InsufficientAvailabilityException.class)
+  public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleInsufficientAvailability(
+      InsufficientAvailabilityException exception) {
+
+<span class="fc" id="L19">    Map&lt;String, Object&gt; body =</span>
+<span class="fc" id="L20">        Map.of(</span>
+            &quot;error&quot;, &quot;INSUFFICIENT_AVAILABILITY&quot;,
+<span class="fc" id="L22">            &quot;requestedQuantity&quot;, exception.getRequestedQuantity(),</span>
+<span class="fc" id="L23">            &quot;availableQuantity&quot;, exception.getAvailableQuantity());</span>
+
+<span class="fc" id="L25">    return ResponseEntity.status(HttpStatus.CONFLICT).body(body);</span>
+  }
+
+  /** Returns a bad request response for invalid reservation inputs. */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity&lt;Map&lt;String, String&gt;&gt; handleInvalidRequest(
+      IllegalArgumentException exception) {
+
+<span class="nc" id="L33">    Map&lt;String, String&gt; body =</span>
+<span class="nc" id="L34">        Map.of(&quot;error&quot;, &quot;INVALID_REQUEST&quot;, &quot;message&quot;, exception.getMessage());</span>
+
+<span class="nc" id="L36">    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

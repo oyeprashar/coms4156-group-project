@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.service</a> &gt; <span class="el_source">ReservationService.java</span></div><h1>ReservationService.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.service;
+
+import edu.columbia.coms4156.ticketing.entity.EventEntity;
+import edu.columbia.coms4156.ticketing.entity.InventoryEntity;
+import edu.columbia.coms4156.ticketing.entity.ReservationEntity;
+import edu.columbia.coms4156.ticketing.entity.ReservationStatus;
+import edu.columbia.coms4156.ticketing.entity.TicketEntity;
+import edu.columbia.coms4156.ticketing.entity.TicketStatus;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.CancelReservationResponse;
+import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.ConfirmReservationResponse;
+import edu.columbia.coms4156.ticketing.pojo.IssuedTicket;
+import edu.columbia.coms4156.ticketing.pojo.ReservationRequest;
+import edu.columbia.coms4156.ticketing.pojo.ReservationResponse;
+import edu.columbia.coms4156.ticketing.repository.EventRepository;
+import edu.columbia.coms4156.ticketing.repository.InventoryRepository;
+import edu.columbia.coms4156.ticketing.repository.ReservationRepository;
+import edu.columbia.coms4156.ticketing.repository.TicketRepository;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+/**
+ * Handles reservation state changes, including confirming holds and issuing
+ * tickets.
+ */
+@Service
+public class ReservationService {
+
+  private static final int HOLD_MINUTES = 10;
+
+  private final EventRepository eventRepository;
+  private final InventoryRepository inventoryRepository;
+  private final ReservationRepository reservationRepository;
+  private final TicketRepository ticketRepository;
+
+  /** Initializes the reservation service with its repositories. */
+  public ReservationService(
+      EventRepository eventRepository,
+      InventoryRepository inventoryRepository,
+      ReservationRepository reservationRepository,
+<span class="fc" id="L51">      TicketRepository ticketRepository) {</span>
+<span class="fc" id="L52">    this.eventRepository = eventRepository;</span>
+<span class="fc" id="L53">    this.inventoryRepository = inventoryRepository;</span>
+<span class="fc" id="L54">    this.reservationRepository = reservationRepository;</span>
+<span class="fc" id="L55">    this.ticketRepository = ticketRepository;</span>
+<span class="fc" id="L56">  }</span>
+
+  /** Reserves available tickets for an event. */
+  @Transactional
+  public ReservationResponse reserveTickets(ReservationRequest request) {
+
+<span class="fc bfc" id="L62" title="All 2 branches covered.">    if (request == null</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        || request.eventId() == null</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        || request.eventId().isBlank()</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        || request.customerId() == null</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        || request.customerId().isBlank()</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        || request.quantity() &lt;= 0) {</span>
+<span class="fc" id="L68">      throw new IllegalArgumentException(&quot;Invalid reservation request&quot;);</span>
+    }
+
+<span class="fc" id="L71">    EventEntity event = eventRepository</span>
+<span class="fc" id="L72">        .findById(request.eventId())</span>
+<span class="fc" id="L73">        .orElseThrow(</span>
+<span class="fc" id="L74">            () -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Event not found&quot;));</span>
+
+<span class="fc" id="L76">    InventoryEntity inventory = inventoryRepository</span>
+<span class="fc" id="L77">        .findByEventIdForUpdate(request.eventId())</span>
+<span class="fc" id="L78">        .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Inventory not found&quot;));</span>
+
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (inventory.getAvailableTickets() &lt; request.quantity()) {</span>
+<span class="fc" id="L81">      throw new InsufficientAvailabilityException(</span>
+<span class="fc" id="L82">          request.quantity(), inventory.getAvailableTickets());</span>
+    }
+
+<span class="fc" id="L85">    int remainingTickets = inventory.getAvailableTickets() - request.quantity();</span>
+<span class="fc" id="L86">    inventory.setAvailableTickets(remainingTickets);</span>
+
+<span class="fc" id="L88">    String reservationId = &quot;res_&quot; + UUID.randomUUID();</span>
+<span class="fc" id="L89">    OffsetDateTime expiresAt = OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(HOLD_MINUTES);</span>
+
+<span class="fc" id="L91">    ReservationEntity reservation = new ReservationEntity(</span>
+        reservationId,
+        event,
+<span class="fc" id="L94">        request.customerId(),</span>
+<span class="fc" id="L95">        request.quantity(),</span>
+        ReservationStatus.HELD,
+        expiresAt);
+
+<span class="fc" id="L99">    inventoryRepository.save(inventory);</span>
+<span class="fc" id="L100">    reservationRepository.save(reservation);</span>
+
+<span class="fc" id="L102">    return new ReservationResponse(</span>
+<span class="fc" id="L103">        reservationId, request.eventId(), request.quantity(), &quot;HELD&quot;, expiresAt, remainingTickets);</span>
+  }
+
+  /**
+   * Confirms a held reservation and issues one ticket per reserved seat. The
+   * reservation row is locked for the whole transaction, so concurrent
+   * confirmations cannot issue tickets twice.
+   *
+   * &lt;p&gt;A hold past its expiry is marked EXPIRED and its tickets go back into
+   * inventory before the request is rejected; that change is committed even
+   * though the request fails.
+   * Repeating a successful confirmation with the same idempotency key returns the
+   * original result.
+   */
+  @Transactional(noRollbackFor = ReservationConfirmationException.class)
+  public ConfirmReservationResponse confirmReservation(
+      String reservationId, ConfirmReservationRequest request) {
+
+<span class="fc" id="L121">    validateRequest(request);</span>
+
+<span class="fc" id="L123">    ReservationEntity reservation = reservationRepository</span>
+<span class="fc" id="L124">        .findByIdForUpdate(reservationId)</span>
+<span class="fc" id="L125">        .orElseThrow(</span>
+<span class="fc" id="L126">            () -&gt; new ReservationConfirmationException(</span>
+                ConfirmationError.RESERVATION_NOT_FOUND, reservationId));
+
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    if (!reservation.getCustomerId().equals(request.customerId())) {</span>
+<span class="fc" id="L130">      throw new ReservationConfirmationException(</span>
+          ConfirmationError.RESERVATION_NOT_OWNED, reservationId);
+    }
+
+<span class="pc bpc" id="L134" title="1 of 5 branches missed.">    switch (reservation.getStatus()) {</span>
+      case CONFIRMED -&gt; {
+<span class="fc bfc" id="L136" title="All 2 branches covered.">        if (request.idempotencyKey().equals(reservation.getConfirmIdempotencyKey())) {</span>
+<span class="fc" id="L137">          return toResponse(</span>
+              reservation,
+<span class="fc" id="L139">              ticketRepository.findByReservationReservationIdOrderByTicketId(reservationId));</span>
+        }
+<span class="fc" id="L141">        throw new ReservationConfirmationException(</span>
+            ConfirmationError.ALREADY_CONFIRMED, reservationId);
+      }
+      case EXPIRED -&gt;
+<span class="fc" id="L145">        throw new ReservationConfirmationException(</span>
+            ConfirmationError.RESERVATION_EXPIRED, reservationId);
+      case CANCELLED -&gt;
+<span class="fc" id="L148">        throw new ReservationConfirmationException(</span>
+            ConfirmationError.RESERVATION_CANCELLED, reservationId);
+      case HELD -&gt; {
+        // Continue below.
+<span class="fc" id="L152">      }</span>
+<span class="nc" id="L153">      default -&gt; throw new IllegalStateException(&quot;Unknown status &quot; + reservation.getStatus());</span>
+    }
+
+    // Databases store microseconds, so truncate to keep retried responses
+    // identical.
+<span class="fc" id="L158">    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);</span>
+
+<span class="fc bfc" id="L160" title="All 2 branches covered.">    if (!now.isBefore(reservation.getExpiresAt())) {</span>
+<span class="fc" id="L161">      reservation.setStatus(ReservationStatus.EXPIRED);</span>
+<span class="fc" id="L162">      reservationRepository.save(reservation);</span>
+<span class="fc" id="L163">      inventoryRepository.releaseTickets(</span>
+<span class="fc" id="L164">          reservation.getEvent().getEventId(), reservation.getQuantity());</span>
+<span class="fc" id="L165">      throw new ReservationConfirmationException(</span>
+          ConfirmationError.RESERVATION_EXPIRED, reservationId);
+    }
+
+<span class="fc" id="L169">    reservation.confirm(request.paymentReference(), request.idempotencyKey(), now);</span>
+<span class="fc" id="L170">    reservationRepository.save(reservation);</span>
+
+<span class="fc" id="L172">    List&lt;TicketEntity&gt; tickets = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    for (int i = 0; i &lt; reservation.getQuantity(); i++) {</span>
+<span class="fc" id="L174">      tickets.add(</span>
+          new TicketEntity(
+<span class="fc" id="L176">              &quot;tkt_&quot; + UUID.randomUUID(),</span>
+<span class="fc" id="L177">              reservation.getEvent(),</span>
+              reservation,
+              TicketStatus.ISSUED,
+              now));
+    }
+
+<span class="fc" id="L183">    return toResponse(reservation, ticketRepository.saveAll(tickets));</span>
+  }
+
+  /**
+   * Cancels a held reservation and returns its tickets to inventory.
+   *
+   * &lt;p&gt;Only HELD reservations can be cancelled. The reservation row is locked for
+   * the whole transaction so concurrent cancellations cannot release tickets more
+   * than once.
+   */
+  @Transactional
+  public CancelReservationResponse cancelReservation(
+      String reservationId, CancelReservationRequest request) {
+
+<span class="fc bfc" id="L197" title="All 4 branches covered.">    if (request == null || isBlank(request.customerId())) {</span>
+<span class="fc" id="L198">      throw new IllegalArgumentException(&quot;customerId is required&quot;);</span>
+    }
+
+    // Find and lock reservation so two separate requests can't cancel reservation
+    // at same time.
+<span class="fc" id="L203">    ReservationEntity reservation = reservationRepository</span>
+<span class="fc" id="L204">        .findByIdForUpdate(reservationId)</span>
+<span class="fc" id="L205">        .orElseThrow(</span>
+<span class="fc" id="L206">            () -&gt; new ReservationCancellationException(</span>
+                CancellationError.RESERVATION_NOT_FOUND, reservationId));
+
+<span class="fc bfc" id="L209" title="All 2 branches covered.">    if (!reservation.getCustomerId().equals(request.customerId())) {</span>
+<span class="fc" id="L210">      throw new ReservationCancellationException(</span>
+          CancellationError.RESERVATION_NOT_OWNED, reservationId);
+    }
+
+    // Check that reservation is HELD.
+<span class="pc bpc" id="L215" title="1 of 3 branches missed.">    switch (reservation.getStatus()) {</span>
+      case CONFIRMED -&gt;
+<span class="fc" id="L217">        throw new ReservationCancellationException(</span>
+            CancellationError.RESERVATION_ALREADY_CONFIRMED, reservationId);
+      case HELD -&gt; {
+        // Only HELD proceeds below.
+<span class="fc" id="L221">      }</span>
+      default -&gt;
+<span class="nc" id="L223">        throw new IllegalStateException(</span>
+<span class="nc" id="L224">            &quot;Cannot cancel reservation in state: &quot; + reservation.getStatus());</span>
+    }
+
+<span class="fc" id="L227">    reservation.setStatus(ReservationStatus.CANCELLED);</span>
+<span class="fc" id="L228">    reservationRepository.save(reservation);</span>
+
+    // Return tickets to inventory.
+<span class="fc" id="L231">    inventoryRepository.releaseTickets(</span>
+<span class="fc" id="L232">        reservation.getEvent().getEventId(), reservation.getQuantity());</span>
+
+<span class="fc" id="L234">    int available = inventoryRepository</span>
+<span class="fc" id="L235">        .findById(reservation.getEvent().getEventId())</span>
+<span class="fc" id="L236">        .map(InventoryEntity::getAvailableTickets)</span>
+<span class="fc" id="L237">        .orElse(-1);</span>
+
+<span class="fc" id="L239">    return new CancelReservationResponse(</span>
+<span class="fc" id="L240">        reservation.getReservationId(),</span>
+<span class="fc" id="L241">        reservation.getEvent().getEventId(),</span>
+<span class="fc" id="L242">        reservation.getStatus().name(),</span>
+<span class="fc" id="L243">        reservation.getQuantity(),</span>
+        available);
+  }
+
+  /** Rejects confirmation requests with missing fields. */
+  private void validateRequest(ConfirmReservationRequest request) {
+<span class="fc bfc" id="L249" title="All 2 branches covered.">    if (request == null</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">        || isBlank(request.customerId())</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        || isBlank(request.paymentReference())</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">        || isBlank(request.idempotencyKey())) {</span>
+<span class="fc" id="L253">      throw new IllegalArgumentException(</span>
+          &quot;customerId, paymentReference, and idempotencyKey are required&quot;);
+    }
+<span class="fc" id="L256">  }</span>
+
+  private static boolean isBlank(String value) {
+<span class="fc bfc" id="L259" title="All 4 branches covered.">    return value == null || value.isBlank();</span>
+  }
+
+  /**
+   * Converts a confirmed reservation and its tickets into the public API
+   * response.
+   */
+  private ConfirmReservationResponse toResponse(
+      ReservationEntity reservation, List&lt;TicketEntity&gt; tickets) {
+
+<span class="fc" id="L269">    List&lt;IssuedTicket&gt; issued = tickets.stream()</span>
+<span class="fc" id="L270">        .map(ticket -&gt; new IssuedTicket(ticket.getTicketId()))</span>
+<span class="fc" id="L271">        .sorted(Comparator.comparing(IssuedTicket::ticketId))</span>
+<span class="fc" id="L272">        .toList();</span>
+
+<span class="fc" id="L274">    return new ConfirmReservationResponse(</span>
+<span class="fc" id="L275">        reservation.getReservationId(),</span>
+<span class="fc" id="L276">        reservation.getEvent().getEventId(),</span>
+<span class="fc" id="L277">        reservation.getStatus().name(),</span>
+        issued,
+<span class="fc" id="L279">        reservation.getConfirmedAt());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

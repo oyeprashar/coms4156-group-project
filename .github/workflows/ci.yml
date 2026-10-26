@@ -1,4 +1,4 @@
-name: Tests and Checkstyle
+name: Tests, coverage, and static analysis
 
 on:
   push:
@@ -28,5 +28,13 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: gradle
 
-      - name: Run tests and Checkstyle
+      - name: Run tests, coverage check, Checkstyle, and SpotBugs
         run: ./gradlew --no-daemon --console=plain --continue check
+
+      - name: Upload test, coverage, Checkstyle, and SpotBugs reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports-java-${{ matrix.java }}
+          path: build/reports/
+          if-no-files-found: ignore

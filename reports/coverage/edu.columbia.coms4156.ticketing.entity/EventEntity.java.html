@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticketing</a> &gt; <a href="index.source.html" class="el_package">edu.columbia.coms4156.ticketing.entity</a> &gt; <span class="el_source">EventEntity.java</span></div><h1>EventEntity.java</h1><pre class="source lang-java linenums">package edu.columbia.coms4156.ticketing.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+
+/** Represents an event available for ticket booking. */
+@Entity
+@Table(name = &quot;events&quot;)
+public class EventEntity {
+
+  @Id
+  @Column(name = &quot;event_id&quot;)
+  private String eventId;
+
+  private String name;
+
+  private String category;
+
+  @Column(name = &quot;start_time&quot;)
+  private OffsetDateTime startTime;
+
+  @Column(name = &quot;min_price&quot;)
+  private BigDecimal minPrice;
+
+  @Column(name = &quot;max_price&quot;)
+  private BigDecimal maxPrice;
+
+  private String currency;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = &quot;venue_id&quot;, nullable = false)
+  private VenueEntity venue;
+
+  /** Required by JPA. */
+<span class="fc" id="L42">  protected EventEntity() {}</span>
+
+  /** Creates an event with its details, pricing, and venue. */
+  public EventEntity(
+      String eventId,
+      String name,
+      String category,
+      OffsetDateTime startTime,
+      BigDecimal minPrice,
+      BigDecimal maxPrice,
+      String currency,
+<span class="fc" id="L53">      VenueEntity venue) {</span>
+
+<span class="fc" id="L55">    this.eventId = eventId;</span>
+<span class="fc" id="L56">    this.name = name;</span>
+<span class="fc" id="L57">    this.category = category;</span>
+<span class="fc" id="L58">    this.startTime = startTime;</span>
+<span class="fc" id="L59">    this.minPrice = minPrice;</span>
+<span class="fc" id="L60">    this.maxPrice = maxPrice;</span>
+<span class="fc" id="L61">    this.currency = currency;</span>
+<span class="fc" id="L62">    this.venue = venue;</span>
+<span class="fc" id="L63">  }</span>
+
+  public String getEventId() {
+<span class="fc" id="L66">    return eventId;</span>
+  }
+
+  public String getName() {
+<span class="fc" id="L70">    return name;</span>
+  }
+
+  public String getCategory() {
+<span class="fc" id="L74">    return category;</span>
+  }
+
+  public OffsetDateTime getStartTime() {
+<span class="fc" id="L78">    return startTime;</span>
+  }
+
+  public BigDecimal getMinPrice() {
+<span class="fc" id="L82">    return minPrice;</span>
+  }
+
+  public BigDecimal getMaxPrice() {
+<span class="fc" id="L86">    return maxPrice;</span>
+  }
+
+  public String getCurrency() {
+<span class="fc" id="L90">    return currency;</span>
+  }
+
+  public VenueEntity getVenue() {
+<span class="fc" id="L94">    return venue;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>

@@ -1,0 +1,17 @@
+Ticketing service test summary
+Generated: 2026-10-26T17:07:35Z
+Commit:    622f033
+
+Gradle checks (unit + REST Assured API tests, coverage, Checkstyle, SpotBugs): PASSED
+  JUnit results:   55 tests, 0 failures, 0 errors
+  Line coverage:   323/364 (88.7%)
+  Branch coverage: 84/104 (80.8%)
+Postman collection (live service + PostgreSQL): PASSED
+  Newman results:  17 tests, 0 failures, 0 errors
+
+Reports:
+  reports/tests/index.html        JUnit and REST Assured results
+  reports/coverage/index.html     JaCoCo coverage
+  reports/checkstyle/main.html    Checkstyle (also test.html)
+  reports/spotbugs/main.html      SpotBugs (also test.html)
+  reports/postman/                Newman results

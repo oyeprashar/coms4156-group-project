@@ -4,6 +4,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
     id 'checkstyle'
+    id 'com.github.spotbugs' version '6.5.13'
 }
 
 group = 'edu.columbia.coms4156'
@@ -37,6 +38,8 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     testRuntimeOnly 'com.h2database:h2'
 
+    // REST Assured sends real HTTP requests to the app started by @SpringBootTest.
+    testImplementation 'io.rest-assured:rest-assured:6.3.0'
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -65,6 +68,23 @@ tasks.named('jacocoTestReport') {
     }
 }
 
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('test')
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                // Raise this as test coverage grows.
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}
+
 checkstyle {
     // Checkstyle 13+ requires Java 21; 12.x also runs on Java 17.
     toolVersion = '12.3.1'
@@ -73,6 +93,19 @@ checkstyle {
 }
 
 tasks.withType(Checkstyle).configureEach {
+    reports {
+        html.required = true
+        xml.required = true
+    }
+}
+
+spotbugs {
+    toolVersion = '4.10.5'
+    effort = com.github.spotbugs.snom.Effort.MAX
+    excludeFilter = file('config/spotbugs/exclude.xml')
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
     reports {
         html.required = true
         xml.required = true

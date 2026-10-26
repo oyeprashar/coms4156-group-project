@@ -98,8 +98,12 @@ by the build.
 | Gradle | 9.8.1 via the included wrapper |
 | JUnit | 6.0.3, managed by Spring Boot |
 | Mockito | 5.23.0, managed by Spring Boot, with the Jupiter extension |
-| JaCoCo | 0.8.15, HTML and XML coverage reports |
+| JaCoCo | 0.8.15, HTML and XML coverage reports; the build fails below 80% line coverage |
 | Checkstyle | 12.3.1, Google Java Style in `config/checkstyle/checkstyle.xml` |
+| SpotBugs | 4.10.5 via Gradle plugin 6.5.13; exclusions in `config/spotbugs/exclude.xml` |
+| REST Assured | 6.3.0, API tests that send real HTTP requests to the running service |
+| Postman | Manual API testing with `postman/ticketing.postman_collection.json` |
+| GitHub Actions | Runs all checks on every push and pull request |
 
 Spring Boot manages test dependencies through `spring-boot-starter-webmvc-test`.
 JUnit 6 still uses imports such as `org.junit.jupiter.api.Test`.
@@ -112,24 +116,31 @@ JUnit 6 still uses imports such as `org.junit.jupiter.api.Test`.
 ├── settings.gradle
 ├── gradlew / gradlew.bat
 ├── gradle/wrapper/                       # Pinned Gradle distribution and checksum
-├── config/checkstyle/checkstyle.xml
+├── compose.yaml                          # Local PostgreSQL container
+├── .github/workflows/ci.yml              # GitHub Actions CI
+├── config/checkstyle/checkstyle.xml      # Checkstyle rules (Google Java Style)
+├── config/spotbugs/exclude.xml           # SpotBugs false-positive exclusions
+├── postman/ticketing.postman_collection.json  # Postman/Newman API tests
+├── scripts/run-all-tests.sh              # Master test script
+├── reports/                              # Latest test, coverage, style, and SpotBugs reports
 └── src/
     ├── main/
     │   ├── java/edu/columbia/coms4156/ticketing/
     │   │   ├── TicketingApplication.java # Spring Boot entry point
-    │   │   ├── controller/
-    │   │   │   └── TicketController.java # Sample HTTP route
-    │   │   ├── service/
-    │   │   │   └── TicketService.java    # Sample service method
-    │   │   ├── pojo/
-    │   │   │   └── Ticket.java           # Simple immutable data record
-    │   │   └── repository/              # Reserved for future persistence
+    │   │   ├── controller/               # HTTP routes and error responses
+    │   │   ├── service/                  # Business logic and domain errors
+    │   │   ├── entity/                   # JPA database entities
+    │   │   ├── repository/               # Spring Data JPA repositories
+    │   │   └── pojo/                     # Request and response records
     │   └── resources/
-    │       └── application.properties
+    │       ├── application.properties    # PostgreSQL connection settings
+    │       └── db/seed.sql               # Sample venues, events, and inventory
     └── test/
-        └── java/edu/columbia/coms4156/ticketing/
-            ├── TicketingApplicationTests.java
-            └── MockitoConfigurationTests.java
+        ├── java/edu/columbia/coms4156/ticketing/
+        │   ├── service/                  # Unit tests with Mockito mocks
+        │   ├── controller/               # MockMvc integration tests
+        │   └── api/                      # REST Assured API tests
+        └── resources/application.properties  # In-memory H2 database for tests
 ```
 
 Packages contain `package-info.java` files documenting their purpose. Put new classes beneath the
@@ -169,12 +180,40 @@ java -jar build/libs/ticketing-0.0.1-SNAPSHOT.jar
 
 ## Tests, coverage, and style
 
+### Run everything (master test script)
+
+```sh
+bash scripts/run-all-tests.sh             # all stages
+bash scripts/run-all-tests.sh --skip-live # stage 1 only; no Docker or Node.js needed
+```
+
+[scripts/run-all-tests.sh](scripts/run-all-tests.sh) runs every check in order:
+
+1. `./gradlew clean check`: JUnit/Mockito unit tests, REST Assured API tests, the
+   JaCoCo coverage minimum, Checkstyle, and SpotBugs, using the in-memory H2 database.
+2. Live API tests: starts PostgreSQL with Docker Compose, starts the service, loads
+   `seed.sql`, and runs the Postman collection with Newman (fetched with `npx`).
+   Needs Docker running and Node.js installed. The script stops the service, and
+   the PostgreSQL container if it started it, when it finishes.
+3. Copies all reports into [reports/](reports/) and writes
+   [reports/summary.txt](reports/summary.txt) with test counts, line and branch
+   coverage, and the result of each stage.
+
+The script exits with a non-zero status if any stage fails. The `reports/` folder
+is committed so the latest style, static analysis, test, and coverage reports are
+in the repository. Rerun the script and commit `reports/` before tagging a release.
+On Windows, run it from Git Bash or WSL.
+
+### Individual commands
+
 | Command | Purpose |
 | --- | --- |
-| `./gradlew test` | Run JUnit 6 tests and generate JaCoCo reports |
+| `./gradlew test` | Run JUnit 6 and REST Assured tests and generate JaCoCo reports |
 | `./gradlew jacocoTestReport` | Run tests if needed and generate coverage reports |
+| `./gradlew jacocoTestCoverageVerification` | Fail if line coverage is below 80% |
 | `./gradlew checkstyleMain checkstyleTest` | Check production and test Java style |
-| `./gradlew check` | Run tests, coverage reporting, and Checkstyle |
+| `./gradlew spotbugsMain spotbugsTest` | Run SpotBugs static analysis on production and test code |
+| `./gradlew check` | Run all of the above |
 | `./gradlew build` | Run checks and create JARs |
 
 Generated reports:
@@ -183,20 +222,74 @@ Generated reports:
 - Coverage: `build/reports/jacoco/test/html/index.html`
 - Coverage XML: `build/reports/jacoco/test/jacocoTestReport.xml`
 - Style: `build/reports/checkstyle/main.html` and `test.html`
+- Static analysis: `build/reports/spotbugs/main.html` and `test.html`
+
+The master test script copies these into the committed [reports/](reports/) folder.
+[reports/summary.txt](reports/summary.txt) shows the latest line and branch coverage
+and test counts, and [reports/coverage/index.html](reports/coverage/index.html) has
+the per-class JaCoCo branch coverage.
 
 The [GitHub Actions workflow](.github/workflows/ci.yml) runs on pushes and pull
 requests, and can also be started manually from the Actions tab. It checks Java
 17 and 26 using `./gradlew --no-daemon --console=plain --continue check`. This runs
-JUnit tests, Checkstyle for production and test sources, and JaCoCo reporting.
-`--continue` lets independent checks finish even if another fails; test failures
-or style violations still fail the job. GitHub will run it once the workflow and
-project files are committed and pushed.
+JUnit and REST Assured tests, the JaCoCo coverage minimum, Checkstyle, and SpotBugs
+for production and test sources. `--continue` lets independent checks finish even
+if another fails; any failure still fails the job. Each run uploads `build/reports/`
+as a `reports-java-17` or `reports-java-26` artifact, downloadable from the run's
+summary page in the Actions tab.
 
-The scaffold tests verify that the application starts without a database and that
-JUnit's Mockito extension can mock final classes. Mockito is loaded as a Java
-agent at test startup so it does not need to attach itself dynamically on newer
-JDKs. Future unit tests can use `@ExtendWith(MockitoExtension.class)` and `@Mock`;
-they do not need `@SpringBootTest` unless they test Spring integration.
+### Unit tests (JUnit 6 + Mockito)
+
+Unit tests live in `src/test/java/edu/columbia/coms4156/ticketing/service/`, one
+class per service operation (`EventServiceTest`, `ReservationServiceTest`,
+`ReservationCancelServiceTest`). Each class uses `@ExtendWith(MockitoExtension.class)`
+and replaces the repositories with `@Mock` test doubles, so the business logic runs
+without a database. Shared setup is in each class's `@BeforeEach` method. Mockito is
+loaded as a Java agent at test startup (configured in `build.gradle`) so it does not
+need to attach itself dynamically on newer JDKs.
+
+`ReservationControllerIntegrationTest` uses MockMvc and the in-memory H2 database
+to check the confirm endpoint through Spring. `TicketingApplicationTests` checks
+that the application starts.
+
+### Configuration files
+
+| File | Configures |
+| --- | --- |
+| `build.gradle` | Dependencies and versions, JUnit platform, Mockito agent, JaCoCo minimum, Checkstyle, SpotBugs |
+| `src/test/resources/application.properties` | In-memory H2 database used by all Gradle tests |
+| `src/main/resources/application.properties` | PostgreSQL connection for running the service |
+| `config/checkstyle/checkstyle.xml` | Checkstyle rules (Google Java Style) |
+| `config/spotbugs/exclude.xml` | SpotBugs exclusions, each with a reason |
+| `postman/ticketing.postman_collection.json` | Postman requests, assertions, and variables |
+| `compose.yaml` | PostgreSQL container used by `bootRun` and the master test script |
+| `.github/workflows/ci.yml` | CI jobs on Java 17 and 26 |
+
+### API tests (REST Assured)
+
+`src/test/java/edu/columbia/coms4156/ticketing/api/TicketingApiTest.java` starts the
+service on a random port with the in-memory H2 database and sends real HTTP
+requests. It covers event search, reserve then confirm, reserve then cancel,
+overbooking, confirming an expired hold, and unknown events. Add new end-to-end
+scenarios there, using `given(api)` so each request targets the test server.
+
+### Static analysis (SpotBugs)
+
+SpotBugs runs at maximum effort and fails the build on any finding. If a finding
+is a false positive, add a `<Match>` to `config/spotbugs/exclude.xml` with a comment
+explaining why, rather than disabling the check. The current exclusions cover
+exposed-reference warnings on JPA entities and response records, and newlines in
+test JSON format strings.
+
+### Manual testing (Postman)
+
+Import `postman/ticketing.postman_collection.json` into Postman. Start PostgreSQL,
+load `seed.sql`, and run `./gradlew bootRun` as described in Operation 1 below.
+Then use **Run collection** to send the requests in order. "Reserve tickets" saves
+the new reservation ID, which the confirm and cancel requests reuse. Change the
+`baseUrl`, `eventId`, or `customerId` collection variables to target a different
+server or seed record. The master test script runs the same collection
+automatically with Newman.
 
 ### Google Java Style
 
@@ -219,8 +312,9 @@ Open `build/reports/checkstyle/main.html` or `test.html` to see the affected fil
 and lines. Checkstyle reports violations; use your editor to fix or format the code.
 The guide remains the reference for conventions Checkstyle cannot verify.
 
-Coverage is reported without a minimum percentage while there is no business logic
-to measure.
+The build requires at least 80% line coverage across all classes. Add tests with new
+code so the minimum keeps passing; the HTML coverage report shows which lines are
+untested.
 
 ## Database recommendation
 
